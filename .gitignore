@@ -1,0 +1,44 @@
+# Node
+node_modules/
+.pnpm-store/
+.npm/
+
+# Build outputs
+dist/
+out/
+build/
+release/
+*.tsbuildinfo
+
+# Electron
+apps/desktop/release/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# Turbo
+.turbo/
+
+# Test
+coverage/

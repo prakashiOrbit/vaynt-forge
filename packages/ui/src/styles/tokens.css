@@ -1,0 +1,71 @@
+/**
+ * APIForge design tokens — dark-first surfaces + blue→violet accent direction.
+ * Rendered as CSS custom properties; Tailwind maps them via `@theme`.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces (deep charcoal → dark slate) */
+  --af-bg: #0e1012;
+  --af-bg-raised: #13161a;
+  --af-bg-overlay: #171b20;
+  --af-bg-hover: rgba(255, 255, 255, 0.04);
+  --af-bg-active: rgba(255, 255, 255, 0.08);
+  --af-bg-input: #0b0d0f;
+
+  /* Borders */
+  --af-border: rgba(255, 255, 255, 0.08);
+  --af-border-strong: rgba(255, 255, 255, 0.16);
+
+  /* Text */
+  --af-text: #e4e7ea;
+  --af-text-muted: #9aa3ad;
+  --af-text-faint: #5d6670;
+
+  /* Accent — blue to violet */
+  --af-accent: #4f8ef7;
+  --af-accent-2: #8b7cf8;
+
+  /* Semantic state */
+  --af-ok: #34d399;
+  --af-err: #f87171;
+  --af-warn: #fbbf24;
+  --af-info: #60a5fa;
+
+  /* Method colors (HTTP) */
+  --af-get: #34d399;
+  --af-post: #fbbf24;
+  --af-put: #60a5fa;
+  --af-patch: #a78bfa;
+  --af-delete: #f87171;
+  --af-head: #94a3b8;
+  --af-options: #c084fc;
+
+  --af-success-text: #34d399;
+  --af-error-text: #f87171;
+
+  /* Fonts */
+  --af-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+  --af-font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, monospace;
+}
+
+body.light {
+  color-scheme: light;
+
+  --af-bg: #f4f5f7;
+  --af-bg-raised: #ffffff;
+  --af-bg-overlay: #fafbfc;
+  --af-bg-hover: rgba(15, 23, 42, 0.04);
+  --af-bg-active: rgba(15, 23, 42, 0.08);
+  --af-bg-input: #ffffff;
+
+  --af-border: rgba(15, 23, 42, 0.12);
+  --af-border-strong: rgba(15, 23, 42, 0.25);
+
+  --af-text: #1a212a;
+  --af-text-muted: #475569;
+  --af-text-faint: #94a3b8;
+
+  --af-accent: #2f6dde;
+  --af-accent-2: #6d5ce0;
+}

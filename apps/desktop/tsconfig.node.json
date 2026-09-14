@@ -1,0 +1,15 @@
+{
+  "extends": "../../packages/config/tsconfig.node.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "noEmit": true,
+    "paths": {
+      "@apiforge/engine": ["../../packages/engine/src/index.ts"],
+      "@apiforge/engine/*": ["../../packages/engine/src/*"],
+      "@apiforge/ui": ["../../packages/ui/src/index.ts"],
+      "@apiforge/ui/*": ["../../packages/ui/src/*"]
+    },
+    "types": ["electron-vite/node", "node"]
+  },
+  "include": ["src/main", "src/preload", "src/shared", "electron.vite.config.ts"]
+}
