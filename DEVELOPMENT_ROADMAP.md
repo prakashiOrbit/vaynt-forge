@@ -59,20 +59,20 @@ shell — not the product.
 **Goal:** Repo boots, Electron runs, design tokens live, CI green.
 
 ### Tasks
-- [ ] Scaffold Turborepo monorepo (`apps/desktop`, `apps/web`, `packages/engine`, `packages/ui`, `packages/config`)
-- [ ] Electron + Vite + React + TypeScript scaffold (contextBridge IPC, `contextIsolation: on`, `nodeIntegration: off`, `sandbox: on`)
-- [ ] Strict TS config shared via `packages/config`
-- [ ] Tailwind CSS + shadcn/ui initialised, components configured
-- [ ] Toolbar: `tsc --noEmit`, ESLint, Prettier; pre-commit hooks (Husky)
-- [ ] Base project structure for main / preload / renderer
-- [ ] Dev/load of `APIForge.html` prototype as the initial renderer shell (sanity check)
-- [ ] README with run instructions (`npm run dev`, `npm run build`)
+- [x] Scaffold Turborepo monorepo (`apps/desktop`, `apps/web`, `packages/engine`, `packages/ui`, `packages/config`)
+- [x] Electron + Vite + React + TypeScript scaffold (contextBridge IPC, `contextIsolation: on`, `nodeIntegration: off`, `sandbox: on`)
+- [x] Strict TS config shared via `packages/config`
+- [x] Tailwind CSS + shadcn/ui initialised, components configured
+- [x] Toolbar: `tsc --noEmit`, ESLint, Prettier; pre-commit hooks (Husky)
+- [x] Base project structure for main / preload / renderer
+- [x] Dev/load of `APIForge.html` prototype as the initial renderer shell (sanity check)
+- [x] README with run instructions (`npm run dev`, `npm run build`)
 
 ### Acceptance criteria
-- [ ] `npm run dev` opens an Electron window showing the app shell
-- [ ] `npm run lint` + `npm run typecheck` pass on a fresh clone
-- [ ] preload exposes a minimal typed API and proves the IPC round-trip (renderer ↔ main)
-- [ ] `npm run build` produces a runnable output
+- [x] `npm run dev` opens an Electron window showing the app shell
+- [x] `npm run lint` + `npm run typecheck` pass on a fresh clone
+- [x] preload exposes a minimal typed API and proves the IPC round-trip (renderer ↔ main)
+- [x] `npm run build` produces a runnable output
 
 ---
 
@@ -429,7 +429,7 @@ shell — not the product.
 
 | Sprint | Status | Notes |
 |---|---|---|
-| Sprint 0 — Foundations | Not started | |
+| Sprint 0 — Foundations | ✅ Built | Monorepo, Electron+react shell, engine/ui/config packages, typecheck+build green, app boots |
 | Sprint 1 — App Shell | Not started | |
 | Sprint 2 — Design System | Not started | |
 | Sprint 3 — Engine Core | Not started | |
