@@ -44,6 +44,12 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  // BrowserWindow's `icon` option doesn't drive the macOS Dock icon in dev
+  // mode (Electron shows its own default there) — only app.dock.setIcon does.
+  if (process.platform === 'darwin' && existsSync(iconPath)) {
+    app.dock?.setIcon(iconPath)
+  }
+
   const dbPath = join(app.getPath('userData'), 'vayntforge.db')
   storageService = new StorageService(dbPath)
   registerIpcHandlers(storageService)
