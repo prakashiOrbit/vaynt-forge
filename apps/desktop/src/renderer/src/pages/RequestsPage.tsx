@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Clipboard, Copy, FolderOpen, Plus, RefreshCw, Search, Send } from 'lucide-react'
-import type { HttpMethod } from '@apiforge/engine'
+import type { HttpMethod } from '@vayntforge/engine'
 import {
   Button,
   Drawer,
@@ -11,7 +11,7 @@ import {
   toast,
   useContextMenu,
   type DataColumn,
-} from '@apiforge/ui'
+} from '@vayntforge/ui'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 

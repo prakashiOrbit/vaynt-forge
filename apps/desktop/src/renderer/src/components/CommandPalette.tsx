@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CornerDownLeft, FolderOpen, History, Layers, Plus, Search, Send } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { HttpMethod } from '@apiforge/engine'
+import type { HttpMethod } from '@vayntforge/engine'
 import { NAV_ITEMS } from '../navigation'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData } from '../stores/data'

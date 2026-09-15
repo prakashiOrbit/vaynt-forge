@@ -2,12 +2,12 @@ import { useState } from 'react'
 import {
   ArrowRight,
   BookOpen,
-  Command,
   FileJson,
   FolderPlus,
   Sparkles,
   X,
 } from 'lucide-react'
+import logo from '../assets/vaynt-forge.png'
 import { useSession } from '../stores/session'
 import { useData } from '../stores/data'
 
@@ -95,12 +95,12 @@ export function Onboarding() {
       />
 
       <div className="relative z-10 my-auto flex w-full max-w-2xl flex-col items-center px-6 py-12">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-2">
-            <Command className="h-4.5 w-4.5 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-[0.24em] text-text font-display">APIFORGE</span>
-        </div>
+        <img
+          src={logo}
+          alt="Vaynt Forge"
+          className="h-10 w-auto rounded-md"
+          draggable={false}
+        />
         <h1 className="mt-6 text-center text-2xl font-semibold text-text">
           Build, test, debug, and understand your APIs.
         </h1>

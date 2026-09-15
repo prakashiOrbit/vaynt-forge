@@ -6,7 +6,7 @@ export function StatusBar() {
 
   useEffect(() => {
     let active = true
-    window.apiforge?.app
+    window.vayntforge?.app
       .ping()
       .then((p) => {
         if (active) setPing(p)

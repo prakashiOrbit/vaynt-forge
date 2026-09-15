@@ -1,7 +1,7 @@
 {
-  "name": "@apiforge/ui",
+  "name": "@vayntforge/ui",
   "version": "0.0.0",
-  "description": "APIForge shared UI — design tokens and primitives.",
+  "description": "Vaynt Forge shared UI — design tokens and primitives.",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

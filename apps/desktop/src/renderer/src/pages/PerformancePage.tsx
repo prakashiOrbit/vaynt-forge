@@ -1,5 +1,5 @@
 import { Activity } from 'lucide-react'
-import { EmptyState } from '@apiforge/ui'
+import { EmptyState } from '@vayntforge/ui'
 
 export function PerformancePage() {
   return (

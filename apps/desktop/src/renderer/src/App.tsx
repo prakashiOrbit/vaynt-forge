@@ -1,4 +1,4 @@
-import { ContextMenuProvider, Toaster } from '@apiforge/ui'
+import { ContextMenuProvider, Toaster } from '@vayntforge/ui'
 import { AppShell } from './components/AppShell'
 import { DataBootstrapper } from './components/DataBootstrapper'
 import { ThemeManager } from './lib/theme'

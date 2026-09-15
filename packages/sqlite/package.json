@@ -1,14 +1,14 @@
 {
-  "name": "@apiforge/sqlite",
+  "name": "@vayntforge/sqlite",
   "version": "0.1.0",
-  "description": "APIForge SQLite persistence provider (node:sqlite). Sprint 3.",
+  "description": "Vaynt Forge SQLite persistence provider (node:sqlite). Sprint 3.",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@apiforge/engine": "*"
+    "@vayntforge/engine": "*"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

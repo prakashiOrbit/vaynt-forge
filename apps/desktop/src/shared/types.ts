@@ -17,7 +17,7 @@ import type {
   FolderDraft,
   FolderPatch,
   NotificationDraft,
-} from '@apiforge/engine'
+} from '@vayntforge/engine'
 
 /**
  * Everything a single workspace needs rendered. Assembled by the main process
@@ -87,7 +87,7 @@ export interface StorageChannel {
   secretsSupported(): Promise<boolean>
 }
 
-export interface ApiForgeApi {
+export interface VayntForgeApi {
   app: {
     /** Proves the renderer ↔ main IPC round-trip works (Sprint 0). */
     ping(): Promise<string>

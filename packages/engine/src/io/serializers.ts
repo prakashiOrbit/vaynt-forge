@@ -9,7 +9,7 @@ import { generateId } from '../util/id'
  */
 
 export interface CollectionFileV1 {
-  format: 'apiforge.collection.v1'
+  format: 'vayntforge.collection.v1'
   name: string
   description?: string
   requests: Array<{
@@ -28,7 +28,7 @@ export interface CollectionFileV1 {
 }
 
 export interface EnvironmentFileV1 {
-  format: 'apiforge.environment.v1'
+  format: 'vayntforge.environment.v1'
   name: string
   phase: Environment['phase']
   isProduction: boolean
@@ -41,7 +41,7 @@ export function serializeCollection(input: {
   requests: RequestModel[]
 }): string {
   const file: CollectionFileV1 = {
-    format: 'apiforge.collection.v1',
+    format: 'vayntforge.collection.v1',
     name: input.name,
     description: input.description,
     requests: input.requests.map((r) => ({
@@ -63,7 +63,7 @@ export function serializeCollection(input: {
 
 export function deserializeCollectionFile(json: string): CollectionFileV1 {
   const parsed = JSON.parse(json) as Partial<CollectionFileV1>
-  if (parsed.format !== 'apiforge.collection.v1' || !Array.isArray(parsed.requests) || !parsed.name) {
+  if (parsed.format !== 'vayntforge.collection.v1' || !Array.isArray(parsed.requests) || !parsed.name) {
     throw new Error('Unsupported collection file format')
   }
   return parsed as CollectionFileV1
@@ -98,7 +98,7 @@ export function requestsFromCollectionFile(
 
 export function serializeEnvironment(env: Environment): string {
   const file: EnvironmentFileV1 = {
-    format: 'apiforge.environment.v1',
+    format: 'vayntforge.environment.v1',
     name: env.name,
     phase: env.phase,
     isProduction: env.isProduction,
@@ -114,7 +114,7 @@ export function serializeEnvironment(env: Environment): string {
 
 export function deserializeEnvironmentFile(json: string): EnvironmentFileV1 {
   const parsed = JSON.parse(json) as Partial<EnvironmentFileV1>
-  if (parsed.format !== 'apiforge.environment.v1' || !parsed.name || !Array.isArray(parsed.variables)) {
+  if (parsed.format !== 'vayntforge.environment.v1' || !parsed.name || !Array.isArray(parsed.variables)) {
     throw new Error('Unsupported environment file format')
   }
   return parsed as EnvironmentFileV1

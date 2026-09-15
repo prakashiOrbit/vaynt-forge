@@ -1,10 +1,10 @@
 /// <reference types="vite/client" />
 
-import type { ApiForgeApi } from '../../shared/types'
+import type { VayntForgeApi } from '../../shared/types'
 
 declare global {
   interface Window {
-    apiforge: ApiForgeApi
+    vayntforge: VayntForgeApi
   }
 }
 

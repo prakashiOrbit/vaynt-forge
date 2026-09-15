@@ -1,5 +1,6 @@
 import { CircleHelp, Command, Search, Settings2, Zap } from 'lucide-react'
-import { Tooltip } from '@apiforge/ui'
+import { Tooltip } from '@vayntforge/ui'
+import logo from '../assets/vaynt-forge.png'
 import { useSession } from '../stores/session'
 import { EnvironmentSelector } from './EnvironmentSelector'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
@@ -23,12 +24,7 @@ export function TopBar() {
           </button>
         </Tooltip>
         <div className="flex items-center gap-2 select-none">
-          <div className="flex h-5 w-5 items-center justify-center rounded bg-gradient-to-br from-accent to-accent-2">
-            <Command className="h-3 w-3 text-white" />
-          </div>
-          <span className="text-[13px] font-bold tracking-[0.2em] text-text font-display">
-            APIFORGE
-          </span>
+          <img src={logo} alt="Vaynt Forge" className="h-6 w-auto rounded" draggable={false} />
         </div>
         <WorkspaceSwitcher />
       </div>

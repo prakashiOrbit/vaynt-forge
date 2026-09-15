@@ -16,7 +16,7 @@ export type NotificationDraft = Omit<AppNotification, 'id' | 'createdAt'>
 
 /**
  * Persistence contract (Sprint 3). Implemented by `InMemoryStorage` (pure TS,
- * used for tests + demo) and `SQLiteStorage` in @apiforge/sqlite (the Electron
+ * used for tests + demo) and `SQLiteStorage` in @vayntforge/sqlite (the Electron
  * main process). The renderer never touches a provider directly — it talks to
  * the main process over the typed `StorageChannel` IPC boundary.
  *

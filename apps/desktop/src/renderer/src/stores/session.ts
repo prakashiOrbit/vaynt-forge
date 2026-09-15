@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { HttpMethod } from '@apiforge/engine'
+import type { HttpMethod } from '@vayntforge/engine'
 
 export interface WorkspaceTab {
   id: string
@@ -91,7 +91,7 @@ export const useSession = create<SessionState>()(
         }),
     }),
     {
-      name: 'apiforge-session',
+      name: 'vayntforge-session',
       partialize: (s) => ({
         activeWorkspaceId: s.activeWorkspaceId,
         activeEnvironmentId: s.activeEnvironmentId,

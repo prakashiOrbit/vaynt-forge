@@ -1,5 +1,5 @@
 import { BookOpen } from 'lucide-react'
-import { EmptyState } from '@apiforge/ui'
+import { EmptyState } from '@vayntforge/ui'
 
 export function DocumentationPage() {
   return (
@@ -12,7 +12,7 @@ export function DocumentationPage() {
         <EmptyState
           icon={BookOpen}
           title="No documentation generated"
-          description="APIForge generates clean, hosted-style docs from your OpenAPI specs and collections. Import a spec to get started."
+          description="Vaynt Forge generates clean, hosted-style docs from your OpenAPI specs and collections. Import a spec to get started."
         />
       </div>
     </div>

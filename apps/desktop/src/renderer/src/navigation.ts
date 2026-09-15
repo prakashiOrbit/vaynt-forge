@@ -41,5 +41,5 @@ export const NAV_ITEMS: NavItem[] = [
 ]
 
 export function navLabel(id: string): string {
-  return NAV_ITEMS.find((n) => n.id === id)?.label ?? 'APIForge'
+  return NAV_ITEMS.find((n) => n.id === id)?.label ?? 'Vaynt Forge'
 }

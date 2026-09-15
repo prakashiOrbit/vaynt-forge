@@ -1,7 +1,8 @@
 {
-  "name": "@apiforge/desktop",
+  "name": "@vayntforge/desktop",
+  "productName": "vaynt-forge",
   "version": "0.1.0",
-  "description": "APIForge desktop app (Electron shell + renderer)",
+  "description": "Vaynt Forge desktop app (Electron shell + renderer)",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -10,9 +11,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "dependencies": {
-    "@apiforge/engine": "*",
-    "@apiforge/sqlite": "*",
-    "@apiforge/ui": "*",
+    "@vayntforge/engine": "*",
+    "@vayntforge/sqlite": "*",
+    "@vayntforge/ui": "*",
     "@fontsource/barlow": "^5.0.0",
     "@fontsource/barlow-condensed": "^5.0.0",
     "@fontsource/jetbrains-mono": "^5.0.0",

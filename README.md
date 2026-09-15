@@ -1,4 +1,4 @@
-# APIForge
+# Vaynt Forge
 
 **Build. Test. Debug. Understand.**
 
@@ -48,5 +48,5 @@ See [`DEVELOPMENT_ROADMAP.md`](./DEVELOPMENT_ROADMAP.md) — 14 sprints, sprint-
 
 ## Prototype reference
 
-`APIForge.html` is the design prototype (interactive single-file bundle) that informs
+`VayntForge.html` is the design prototype (interactive single-file bundle) that informs
 the UI. It is not shipped.

@@ -1,8 +1,8 @@
 {
-  "name": "@apiforge/config",
+  "name": "@vayntforge/config",
   "version": "0.0.0",
   "private": true,
-  "description": "Shared configuration for APIForge monorepo",
+  "description": "Shared configuration for Vaynt Forge monorepo",
   "exports": {
     "./base.json": "./tsconfig.base.json",
     "./react.json": "./tsconfig.react.json",

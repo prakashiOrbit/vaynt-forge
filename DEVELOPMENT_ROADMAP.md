@@ -1,6 +1,6 @@
-# APIForge — Production Development Roadmap
+# Vaynt Forge — Production Development Roadmap
 
-> **Product:** APIForge — Build. Test. Debug. Understand.
+> **Product:** Vaynt Forge — Build. Test. Debug. Understand.
 > A professional desktop API engineering workbench (IDE + API Command Center).
 > **Not** a Postman clone. Combines HTTP, GraphQL, WebSocket, SSE, gRPC, OpenAPI,
 > testing, mocking, performance, documentation, and debugging in one product.
@@ -13,7 +13,7 @@
 |---|---|---|
 | Shell | **Electron** (Chromium + Node) | Proved by VS Code, Postman, Insomnia |
 | Language | TypeScript (strict) | Everywhere — main, preload, renderer, engine |
-| UI | React + Tailwind CSS + shadcn/ui | Reuse existing `APIForge.html` prototype 1:1 |
+| UI | React + Tailwind CSS + shadcn/ui | Reuse existing `VayntForge.html` prototype 1:1 |
 | Icons | Lucide | |
 | State | Zustand (`persist` middleware) | |
 | Editors | Monaco (`@monaco-editor/react`) | CodeMirror 6 as lighter alt |
@@ -65,7 +65,7 @@ shell — not the product.
 - [x] Tailwind CSS + shadcn/ui initialised, components configured
 - [x] Toolbar: `tsc --noEmit`, ESLint, Prettier; pre-commit hooks (Husky)
 - [x] Base project structure for main / preload / renderer
-- [x] Dev/load of `APIForge.html` prototype as the initial renderer shell (sanity check)
+- [x] Dev/load of `VayntForge.html` prototype as the initial renderer shell (sanity check)
 - [x] README with run instructions (`npm run dev`, `npm run build`)
 
 ### Acceptance criteria
@@ -84,7 +84,7 @@ shell — not the product.
 - [x] `AppShell` layout: TopBar, left Sidebar, main content area, StatusBar
 - [x] Sidebar with all 13 primary nav items: Home, Workspace, Requests, Collections, Tests, Mock Servers, OpenAPI, History, Performance, WebSockets, Environments, Documentation, Settings (bottom)
 - [x] Sidebar collapse/expand + persistent width (drag-resize handle, 52–320px, persisted)
-- [x] TopBar: APIForge logo, global search trigger (`Cmd/Ctrl + K`), environment selector, notifications, help, settings, user/workspace indicator ✅
+- [x] TopBar: Vaynt Forge logo, global search trigger (`Cmd/Ctrl + K`), environment selector, notifications, help, settings, user/workspace indicator ✅
 - [x] IDE-style **workspace tabs** (`[GET /users] [POST /login] [WebSocket] [+]`) with: method colour, name, unsaved dot, close button, active state, scrolling (+ `[+]` opens a real new-request tab)
 - [x] Placeholder screens for **every** sidebar item (no dead buttons — all open real screens)
 - [x] First-launch onboarding flow (Welcome → Create Workspace / Import OpenAPI / Import Collection / Start with Demo Workspace) — default prototype path = Demo Workspace ("Acme API")
@@ -176,7 +176,7 @@ shell — not the product.
 
 ## Sprint 5 — Request Builder (core screen)
 
-**Goal:** The heart of APIForge — premium, dense, keyboard-driven.
+**Goal:** The heart of Vaynt Forge — premium, dense, keyboard-driven.
 
 ### Tasks
 - [ ] Request workspace layout: collection/request explorer (left) · request builder (center) · response viewer (bottom)
@@ -279,7 +279,7 @@ shell — not the product.
 
 ## Sprint 9 — Real-time Protocols (GraphQL, WebSocket, SSE, gRPC)
 
-**Goal:** The protocol breadth that separates APIForge from Postman.
+**Goal:** The protocol breadth that separates Vaynt Forge from Postman.
 
 ### Tasks
 - [ ] **GraphQL** workspace: endpoint, query editor (+ pretty/format), variables editor, headers, schema explorer (right panel, from introspection), execute, response tree
@@ -432,7 +432,8 @@ shell — not the product.
 | Sprint 0 — Foundations | ✅ Built | Monorepo, Electron+react shell, engine/ui/config packages, typecheck+build green, app boots |
 | Sprint 1 — Application Shell & Navigation | ✅ Built | Onboarding, workspace switcher (CRUD), Cmd+K command palette, resizable sidebar, keyboard-shortcut foundation, live tab/home actions |
 | Sprint 2 — Design System & Shared UI Primitives | ✅ Built | Dark/Light/System themes + Barlow/JetBrains Mono type; DataTable, Empty/Error/Loading states, ConfirmDialog, Toasts + NotificationCenter, ContextMenu, Modal/Drawer, Tooltips, full palette sections; real Requests & History screens; micro-interaction animations |
-| Sprint 3 — Engine Core | ✅ Built | Engine `StorageProvider` (CRUD + drafts), `InMemoryStorage`, seed + safeStorage `SecretCodec`; `@apiforge/sqlite` node:sqlite provider (11 tables, WAL, cascade delete, history cap); typed `storage:call` IPC + `StorageService`, preload bridge; workspace-bucket Zustand store + DataBootstrapper; session store slimmmed to UI prefs (persist); all screens (Home/Requests/History, switcher, palette, notifications) read live DB state; secrets ciphertext in DB dump verified; `npm run test` (tsx, 12 tests) + boot smoke green |
+| Sprint 3 — Engine Core | ✅ Built | Engine `StorageProvider` (CRUD + drafts), `InMemoryStorage`, seed + safeStorage `SecretCodec`; `@vayntforge/sqlite` node:sqlite provider (11 tables, WAL, cascade delete, history cap); typed `storage:call` IPC + `StorageService`, preload bridge; workspace-bucket Zustand store + DataBootstrapper; session store slimmmed to UI prefs (persist); all screens (Home/Requests/History, switcher, palette, notifications) read live DB state; secrets ciphertext in DB dump verified; `npm run test` (tsx, 12 tests) + boot smoke green |
+| Rebrand | ✅ Built | Product renamed APIForge → **Vaynt Forge** everywhere (packages `@apiforge/*` → `@vayntforge/*`, bridge `window.vayntforge`, `VayntForgeApi`, `vayntforge.db`, `vayntforge-session`, serializers `vayntforge.*.v1`, `APIForge.html` → `VayntForge.html`); brand logo `vaynt-forge.png` added in TopBar + Onboarding + BrowserWindow icon; productName `vaynt-forge` (userData → `~/Library/Application Support/vaynt-forge`); workspace rebuilt via npm install (lockfile regenerated); typecheck/lint/test/build green + fresh-DB boot smoke verified (seeds 1/4/13/4/5/3/1, no plaintext secrets, no re-seed) |
 | Sprint 1 — App Shell | Not started | |
 | Sprint 2 — Design System | Not started | |
 | Sprint 3 — Engine Core | Not started | |

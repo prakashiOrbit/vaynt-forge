@@ -1,7 +1,7 @@
 {
-  "name": "@apiforge/web",
+  "name": "@vayntforge/web",
   "version": "0.1.0",
-  "description": "APIForge browser fallback (PWA), shares engine + ui with the desktop app.",
+  "description": "Vaynt Forge browser fallback (PWA), shares engine + ui with the desktop app.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@apiforge/engine": "*",
-    "@apiforge/ui": "*",
+    "@vayntforge/engine": "*",
+    "@vayntforge/ui": "*",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },

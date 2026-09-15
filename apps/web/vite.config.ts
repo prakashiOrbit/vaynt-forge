@@ -4,11 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 
 const engineAlias = {
-  find: '@apiforge/engine',
+  find: '@vayntforge/engine',
   replacement: fileURLToPath(new URL('../../packages/engine/src', import.meta.url)),
 }
 const uiAlias = {
-  find: '@apiforge/ui',
+  find: '@vayntforge/ui',
   replacement: fileURLToPath(new URL('../../packages/ui/src', import.meta.url)),
 }
 

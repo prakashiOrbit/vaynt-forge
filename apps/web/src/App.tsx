@@ -1,5 +1,5 @@
-import { StatusBadge, MethodBadge, Button } from '@apiforge/ui'
-import { InMemoryStorage } from '@apiforge/engine'
+import { StatusBadge, MethodBadge, Button } from '@vayntforge/ui'
+import { InMemoryStorage } from '@vayntforge/engine'
 
 export function App() {
   const storage = new InMemoryStorage()
@@ -9,7 +9,7 @@ export function App() {
   return (
     <div className="flex min-h-full items-center justify-center bg-bg p-8">
       <div className="w-full max-w-lg rounded-lg border border-border bg-raised p-6">
-        <h1 className="text-sm font-semibold text-text">APIForge</h1>
+        <h1 className="text-sm font-semibold text-text">Vaynt Forge</h1>
         <p className="mt-1 text-[12px] text-faint">
           Browser fallback build — shares the same engine and UI as the desktop app.
         </p>

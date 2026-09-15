@@ -19,7 +19,7 @@ import { seedProvider } from './seed'
 
 /**
  * Pure-TS storage provider — no Electron, no Node imports. Used by tests and
- * as the reference semantics for `SQLiteStorage` in @apiforge/sqlite.
+ * as the reference semantics for `SQLiteStorage` in @vayntforge/sqlite.
  * `seed = true` (default) populates the "Acme API" demo workspace.
  */
 export class InMemoryStorage implements StorageProvider {

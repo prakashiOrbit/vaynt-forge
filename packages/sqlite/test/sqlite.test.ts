@@ -22,7 +22,7 @@ function seededStore(path: string): {
 }
 
 function tempDb(): string {
-  return join(mkdtempSync(join(tmpdir(), 'apiforge-')), 'test.db')
+  return join(mkdtempSync(join(tmpdir(), 'vayntforge-')), 'test.db')
 }
 
 function sampleRequest(id: string, workspaceId: string, collectionId?: string): RequestModel {

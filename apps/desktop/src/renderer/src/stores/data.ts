@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DEFAULT_APP_SETTINGS } from '@apiforge/engine'
+import { DEFAULT_APP_SETTINGS } from '@vayntforge/engine'
 import type {
   AppNotification,
   AppSettings,
@@ -15,7 +15,7 @@ import type {
   Variable,
   Workspace,
   WorkspaceDraft,
-} from '@apiforge/engine'
+} from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../../../shared/types'
 import { useSession } from './session'
 
@@ -23,7 +23,7 @@ function call<K extends keyof StorageChannel>(
   method: K,
   ...args: Parameters<StorageChannel[K]>
 ): Promise<ReturnType<StorageChannel[K]>> {
-  return (window.apiforge.storage.call as (m: typeof method, ...a: unknown[]) => Promise<unknown>)(
+  return (window.vayntforge.storage.call as (m: typeof method, ...a: unknown[]) => Promise<unknown>)(
     method,
     ...args
   ) as Promise<ReturnType<StorageChannel[K]>>

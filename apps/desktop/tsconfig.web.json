@@ -4,10 +4,10 @@
     "baseUrl": ".",
     "noEmit": true,
     "paths": {
-      "@apiforge/engine": ["../../packages/engine/src/index.ts"],
-      "@apiforge/engine/*": ["../../packages/engine/src/*"],
-      "@apiforge/ui": ["../../packages/ui/src/index.ts"],
-      "@apiforge/ui/*": ["../../packages/ui/src/*"]
+      "@vayntforge/engine": ["../../packages/engine/src/index.ts"],
+      "@vayntforge/engine/*": ["../../packages/engine/src/*"],
+      "@vayntforge/ui": ["../../packages/ui/src/index.ts"],
+      "@vayntforge/ui/*": ["../../packages/ui/src/*"]
     }
   },
   "include": ["src/renderer/src", "src/shared"]

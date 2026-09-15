@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Bell, CheckCheck, Trash2, X } from 'lucide-react'
-import { Button } from '@apiforge/ui'
-import type { NotificationTone } from '@apiforge/engine'
+import { Button } from '@vayntforge/ui'
+import type { NotificationTone } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 

@@ -1,6 +1,6 @@
 import { safeStorage } from 'electron'
-import { SQLiteStorage } from '@apiforge/sqlite'
-import { withSecretCodec, seedProvider, DEFAULT_APP_SETTINGS } from '@apiforge/engine'
+import { SQLiteStorage } from '@vayntforge/sqlite'
+import { withSecretCodec, seedProvider, DEFAULT_APP_SETTINGS } from '@vayntforge/engine'
 import type {
   SecretCodec,
   Workspace,
@@ -21,7 +21,7 @@ import type {
   FolderDraft,
   FolderPatch,
   NotificationDraft,
-} from '@apiforge/engine'
+} from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../shared/types'
 
 /**

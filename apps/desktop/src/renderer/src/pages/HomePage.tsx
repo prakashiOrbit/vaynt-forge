@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
   XCircle,
 } from 'lucide-react'
-import { Button, MethodBadge, StatusCode } from '@apiforge/ui'
+import { Button, MethodBadge, StatusCode } from '@vayntforge/ui'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 

@@ -4,12 +4,12 @@
     "baseUrl": ".",
     "noEmit": true,
     "paths": {
-      "@apiforge/engine": ["../../packages/engine/src/index.ts"],
-      "@apiforge/engine/*": ["../../packages/engine/src/*"],
-      "@apiforge/ui": ["../../packages/ui/src/index.ts"],
-      "@apiforge/ui/*": ["../../packages/ui/src/*"],
-      "@apiforge/sqlite": ["../../packages/sqlite/src/index.ts"],
-      "@apiforge/sqlite/*": ["../../packages/sqlite/src/*"]
+      "@vayntforge/engine": ["../../packages/engine/src/index.ts"],
+      "@vayntforge/engine/*": ["../../packages/engine/src/*"],
+      "@vayntforge/ui": ["../../packages/ui/src/index.ts"],
+      "@vayntforge/ui/*": ["../../packages/ui/src/*"],
+      "@vayntforge/sqlite": ["../../packages/sqlite/src/index.ts"],
+      "@vayntforge/sqlite/*": ["../../packages/sqlite/src/*"]
     },
     "types": ["electron-vite/node", "node"]
   },

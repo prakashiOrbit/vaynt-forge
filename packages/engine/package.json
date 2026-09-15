@@ -1,7 +1,7 @@
 {
-  "name": "@apiforge/engine",
+  "name": "@vayntforge/engine",
   "version": "0.0.0",
-  "description": "APIForge engine — networking, variables, storage. Pure TypeScript, Electron-free.",
+  "description": "Vaynt Forge engine — networking, variables, storage. Pure TypeScript, Electron-free.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

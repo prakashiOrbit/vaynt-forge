@@ -1,10 +1,13 @@
 import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 import { IPC } from '../shared/ipc'
 import { registerIpcHandlers } from './ipc'
 import { StorageService } from './storageService'
 
 let storageService: StorageService | null = null
+
+const iconPath = join(app.getAppPath(), 'src', 'renderer', 'public', 'vaynt-forge.png')
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -12,7 +15,8 @@ function createWindow(): void {
     height: 900,
     minWidth: 1024,
     minHeight: 640,
-    title: 'APIForge',
+    title: 'Vaynt Forge',
+    icon: existsSync(iconPath) ? iconPath : undefined,
     backgroundColor: '#0e1012',
     show: false,
     autoHideMenuBar: true,
@@ -40,7 +44,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  const dbPath = join(app.getPath('userData'), 'apiforge.db')
+  const dbPath = join(app.getPath('userData'), 'vayntforge.db')
   storageService = new StorageService(dbPath)
   registerIpcHandlers(storageService)
   console.log(`[storage] sqlite @ ${dbPath}`)

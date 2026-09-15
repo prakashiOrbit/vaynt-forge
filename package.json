@@ -1,8 +1,8 @@
 {
-  "name": "api-manager",
+  "name": "vaynt-forge",
   "version": "0.1.0",
   "private": true,
-  "description": "APIForge — Build. Test. Debug. Understand. A professional desktop API engineering workbench.",
+  "description": "Vaynt Forge — Build. Test. Debug. Understand. A professional desktop API engineering workbench.",
   "license": "UNLICENSED",
   "workspaces": [
     "apps/*",

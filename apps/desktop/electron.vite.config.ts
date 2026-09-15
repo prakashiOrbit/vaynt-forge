@@ -4,15 +4,15 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
 
 const engineAlias = {
-  find: '@apiforge/engine',
+  find: '@vayntforge/engine',
   replacement: fileURLToPath(new URL('../../packages/engine/src', import.meta.url)),
 }
 const uiAlias = {
-  find: '@apiforge/ui',
+  find: '@vayntforge/ui',
   replacement: fileURLToPath(new URL('../../packages/ui/src', import.meta.url)),
 }
 const sqliteAlias = {
-  find: '@apiforge/sqlite',
+  find: '@vayntforge/sqlite',
   replacement: fileURLToPath(new URL('../../packages/sqlite/src', import.meta.url)),
 }
 
@@ -20,7 +20,7 @@ export default defineConfig({
   main: {
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['@apiforge/engine', '@apiforge/ui', '@apiforge/sqlite'],
+        exclude: ['@vayntforge/engine', '@vayntforge/ui', '@vayntforge/sqlite'],
       }),
     ],
     resolve: {

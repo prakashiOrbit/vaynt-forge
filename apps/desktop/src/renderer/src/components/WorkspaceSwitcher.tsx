@@ -10,8 +10,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { ConfirmDialog, toast } from '@apiforge/ui'
-import type { Workspace } from '@apiforge/engine'
+import { ConfirmDialog, toast } from '@vayntforge/ui'
+import type { Workspace } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useData, useWorkspaceById } from '../stores/data'
 
