@@ -9,7 +9,7 @@ import {
   toast,
   type TabItem,
 } from '@vayntforge/ui'
-import { parseDotEnv, serializeEnvironment, collectVariables, resolveVariables } from '@vayntforge/engine'
+import { parseDotEnv, serializeEnvironment, deserializeEnvironmentFile, environmentFromFile, collectVariables, resolveVariables } from '@vayntforge/engine'
 import type { Environment, EnvironmentPhase, Variable } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
@@ -42,6 +42,7 @@ export function EnvironmentsPage() {
   const [revealed, setRevealed] = useState<Set<string>>(new Set())
   const [preview, setPreview] = useState('{{api_url}}/users/{{userId}}')
   const importInputRef = useRef<HTMLInputElement | null>(null)
+  const envFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const selectedEnv = environments.find((e) => e.id === selectedId)
   const isGlobal = selectedId === GLOBAL_ID
@@ -119,6 +120,23 @@ export function EnvironmentsPage() {
   }
 
   const importDotEnv = () => importInputRef.current?.click()
+
+  const importEnvironment = () => envFileInputRef.current?.click()
+
+  const onEnvironmentFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const parsed = deserializeEnvironmentFile(await file.text())
+      const created = environmentFromFile(parsed, activeWorkspaceId)
+      await useData.getState().saveEnvironment(created)
+      setSelectedId(created.id)
+      toast.success('Environment imported', `${created.name} · ${created.variables.length} variables`)
+    } catch (err) {
+      toast.error('Import failed', err instanceof Error ? err.message : String(err))
+    }
+  }
 
   const onDotEnvSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -242,6 +260,9 @@ export function EnvironmentsPage() {
                 <Button size="sm" variant="ghost" onClick={importDotEnv}>
                   <Upload className="h-3.5 w-3.5" /> Import .env
                 </Button>
+                <Button size="sm" variant="ghost" onClick={importEnvironment}>
+                  <Upload className="h-3.5 w-3.5" /> Import environment
+                </Button>
                 {!isGlobal && selectedEnv && (
                   <>
                     <Button size="sm" variant="ghost" onClick={duplicateEnvironment}>
@@ -258,6 +279,7 @@ export function EnvironmentsPage() {
               </div>
             </div>
             <input ref={importInputRef} type="file" accept=".env,text/plain" className="hidden" onChange={(e) => void onDotEnvSelected(e)} />
+            <input ref={envFileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => void onEnvironmentFileSelected(e)} />
 
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {rows.length === 0 ? (

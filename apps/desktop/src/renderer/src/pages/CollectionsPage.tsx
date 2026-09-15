@@ -15,7 +15,7 @@ import {
 import { Tree } from 'react-arborist'
 import type { MoveHandler, TreeApi } from 'react-arborist'
 import { Button, ConfirmDialog, EmptyState, PromptDialog, toast, useContextMenu } from '@vayntforge/ui'
-import { createDraftRequest, serializeCollection, deserializeCollectionFile, requestsFromCollectionFile } from '@vayntforge/engine'
+import { createDraftRequest, serializeCollection, exportCollectionPostman, exportCollectionOpenApi } from '@vayntforge/engine'
 import type { RequestModel } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
@@ -27,6 +27,8 @@ import { TreeNodeRow } from '../components/collections/TreeNodeRow'
 import { TreeActionsContext } from '../components/collections/treeActions'
 import { MoveDialog } from '../components/collections/MoveDialog'
 import { CollectionRunner } from '../components/collections/CollectionRunner'
+import { ImportCollectionModal } from '../components/collections/ImportCollectionModal'
+import { useKeyboardShortcut } from '../lib/shortcuts'
 
 function downloadText(filename: string, text: string, type = 'application/json') {
   const blob = new Blob([text], { type })
@@ -54,13 +56,24 @@ export function CollectionsPage() {
   const treeRef = useRef<TreeApi<TreeNode> | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [size, setSize] = useState({ width: 800, height: 500 })
-  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const [newCollectionOpen, setNewCollectionOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [newFolderTarget, setNewFolderTarget] = useState<string | null>(null)
   const [moveTarget, setMoveTarget] = useState<RequestModel | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [runnerCollectionId, setRunnerCollectionId] = useState<string | null>(null)
+
+  // No per-row selection concept in this tree yet, so Cmd+Shift+R runs the
+  // first collection — documented as such on the Keyboard Shortcuts screen.
+  useKeyboardShortcut(
+    ['cmd', 'shift'],
+    'r',
+    () => {
+      if (collections.length > 0) setRunnerCollectionId(collections[0]!.id)
+    },
+    { allowInInputs: true }
+  )
 
   useEffect(() => {
     const el = containerRef.current
@@ -159,35 +172,19 @@ export function CollectionsPage() {
     toast.success('Collection duplicated', created.name)
   }
 
-  const exportCollection = (collectionId: string) => {
+  const exportCollectionAs = (collectionId: string, format: 'native' | 'postman' | 'openapi') => {
     const c = collections.find((x) => x.id === collectionId)
     if (!c) return
     const reqs = requests.filter((r) => r.collectionId === collectionId)
-    const json = serializeCollection({ name: c.name, description: c.description, requests: reqs })
-    downloadText(`${c.name.replace(/\s+/g, '-').toLowerCase()}.collection.json`, json)
-    toast.success('Collection exported')
-  }
-
-  const importCollection = () => fileInputRef.current?.click()
-
-  const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    try {
-      const text = await file.text()
-      const parsed = deserializeCollectionFile(text)
-      const created = await useData.getState().createCollection({
-        name: parsed.name,
-        workspaceId: activeWorkspaceId,
-        description: parsed.description,
-      })
-      const newRequests = requestsFromCollectionFile(parsed, activeWorkspaceId, created.id)
-      for (const r of newRequests) await useData.getState().saveRequest(r)
-      toast.success('Collection imported', `${created.name} · ${newRequests.length} requests`)
-    } catch (err) {
-      toast.error('Import failed', err instanceof Error ? err.message : String(err))
+    const slug = c.name.replace(/\s+/g, '-').toLowerCase()
+    if (format === 'native') {
+      downloadText(`${slug}.collection.json`, serializeCollection({ name: c.name, description: c.description, requests: reqs }))
+    } else if (format === 'postman') {
+      downloadText(`${slug}.postman_collection.json`, JSON.stringify(exportCollectionPostman(c, reqs), null, 2))
+    } else {
+      downloadText(`${slug}.openapi.json`, JSON.stringify(exportCollectionOpenApi(c, reqs), null, 2))
     }
+    toast.success('Collection exported', `${c.name} · ${format === 'native' ? 'Vaynt Forge JSON' : format === 'postman' ? 'Postman v2.1' : 'OpenAPI 3.0'}`)
   }
 
   const onMove: MoveHandler<TreeNode> = async ({ dragNodes, parentId, parentNode }) => {
@@ -257,7 +254,9 @@ export function CollectionsPage() {
         },
         { label: 'Duplicate', icon: <Copy className="h-3.5 w-3.5" />, onSelect: () => void duplicateCollection(data.id) },
         { label: 'Run', icon: <Play className="h-3.5 w-3.5" />, onSelect: () => setRunnerCollectionId(data.id) },
-        { label: 'Export', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollection(data.id) },
+        { label: 'Export → Vaynt Forge JSON', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'native') },
+        { label: 'Export → Postman v2.1', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'postman') },
+        { label: 'Export → OpenAPI 3.0', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'openapi') },
         { separator: true },
         {
           label: 'Delete',
@@ -327,11 +326,10 @@ export function CollectionsPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => void onFileSelected(e)} />
       <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
         <h1 className="text-[13px] font-semibold text-text">Collections</h1>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="ghost" onClick={importCollection}>
+          <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)}>
             <Upload className="h-3.5 w-3.5" /> Import
           </Button>
           <Button size="sm" onClick={() => setNewCollectionOpen(true)}>
@@ -339,6 +337,7 @@ export function CollectionsPage() {
           </Button>
         </div>
       </div>
+      <ImportCollectionModal open={importOpen} onClose={() => setImportOpen(false)} workspaceId={activeWorkspaceId} />
 
       <div ref={containerRef} className="min-h-0 flex-1">
         {collections.length === 0 ? (

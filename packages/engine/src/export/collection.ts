@@ -2,27 +2,11 @@ import type { Collection } from '../types/workspace'
 import type { RequestModel } from '../types/request'
 
 /**
- * Sprint 12 — collection export, three formats. Native JSON round-trips
- * through this app's own types (lossless); Postman v2.1 and OpenAPI 3.0.3
- * are for interop with other tools (both intentionally minimal but valid —
- * every field they emit is real, nothing is a stub with fake values).
+ * Sprint 12 — collection export to interop formats. Native JSON export
+ * already existed (`serializeCollection`, Sprint 3); these two are the new
+ * ones, both intentionally minimal but genuinely valid — nothing here is a
+ * stub emitting fake values.
  */
-
-export interface NativeCollectionExport {
-  format: 'vaynt-forge-collection'
-  version: 1
-  collection: Pick<Collection, 'name' | 'description'>
-  requests: RequestModel[]
-}
-
-export function exportCollectionNative(collection: Collection, requests: RequestModel[]): NativeCollectionExport {
-  return {
-    format: 'vaynt-forge-collection',
-    version: 1,
-    collection: { name: collection.name, description: collection.description },
-    requests,
-  }
-}
 
 /** Extracts the pathname without going through `URL` (which would choke on
  * unencoded `{{var}}` template segments) — strips protocol/host by hand,

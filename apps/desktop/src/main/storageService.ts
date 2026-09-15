@@ -27,6 +27,20 @@ import type {
 } from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../shared/types'
 
+/** Merges a persisted settings row with the current defaults so a workspace
+ * seeded before a settings field existed (e.g. `editor`, `certificates`
+ * added in Sprint 12) doesn't crash the UI reading it — old rows just get
+ * the new field's default until the user changes it. */
+function mergeSettingsWithDefaults(saved: AppSettings | undefined): AppSettings {
+  return {
+    ...DEFAULT_APP_SETTINGS,
+    ...saved,
+    proxy: { ...DEFAULT_APP_SETTINGS.proxy, ...saved?.proxy },
+    editor: { ...DEFAULT_APP_SETTINGS.editor, ...saved?.editor },
+    certificates: saved?.certificates ?? DEFAULT_APP_SETTINGS.certificates,
+  }
+}
+
 /**
  * Electron `safeStorage` codec — secret variable values are encrypted with the
  * OS keychain before they reach SQLite and decrypted only on read. On platforms
@@ -100,7 +114,7 @@ export class StorageService implements StorageChannel {
       performanceRuns: this.provider.listPerformanceRuns(workspaceId),
       history: this.provider.listHistory(workspaceId),
       testRuns: this.provider.listTestRuns(workspaceId),
-      settings: this.provider.getSettings(workspaceId) ?? DEFAULT_APP_SETTINGS,
+      settings: mergeSettingsWithDefaults(this.provider.getSettings(workspaceId)),
       notifications: this.provider.listNotifications(workspaceId),
       secretsSupported: new SafeStorageCodec().isAvailable(),
       updatedAt: Date.now(),
@@ -198,6 +212,9 @@ export class StorageService implements StorageChannel {
   async addHistory(entry: Omit<HistoryEntry, 'id'>): Promise<HistoryEntry> {
     if (!entry.workspaceId) throw new Error('addHistory requires a workspaceId')
     return this.provider.addHistory(entry)
+  }
+  async deleteHistoryEntry(id: string): Promise<void> {
+    this.provider.deleteHistoryEntry(id)
   }
   async clearHistory(workspaceId: string): Promise<void> {
     this.provider.clearHistory(workspaceId)

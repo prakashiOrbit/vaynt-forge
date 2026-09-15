@@ -85,6 +85,7 @@ export interface StorageProvider {
   // ── History ───────────────────────────────────────────────
   addHistory(entry: HistoryInput): HistoryEntry
   listHistory(workspaceId: string): HistoryEntry[]
+  deleteHistoryEntry(id: string): void
   clearHistory(workspaceId: string): void
 
   // ── Test runs ─────────────────────────────────────────────

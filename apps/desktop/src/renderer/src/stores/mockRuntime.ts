@@ -42,6 +42,14 @@ export const useMockRuntime = create<MockRuntimeState>()((set, get) => ({
       set((s) => ({ liveLogs: { ...s.liveLogs, [server.id]: [] } }))
       await useData.getState().saveMockServer({ ...server, status: 'running' })
       toast.success('Mock server started', `${server.name} · http://localhost:${server.port}`)
+      void useData.getState().addNotification({
+        workspaceId: server.workspaceId,
+        tone: 'success',
+        title: 'Mock server started',
+        message: `${server.name} · http://localhost:${server.port}`,
+        read: false,
+        dismissed: false,
+      })
     } catch (err) {
       toast.error('Failed to start mock server', err instanceof Error ? err.message : String(err))
     } finally {

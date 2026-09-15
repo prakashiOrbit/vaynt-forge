@@ -18,6 +18,8 @@ import { PerformancePage } from '../pages/PerformancePage'
 import { DocumentationPage } from '../pages/DocumentationPage'
 import { OpenApiPage } from '../pages/OpenApiPage'
 import { MockServersPage } from '../pages/MockServersPage'
+import { ShortcutsPage } from '../pages/ShortcutsPage'
+import { SettingsPage } from '../pages/SettingsPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 const SCREENS: Record<string, ComponentType> = {
@@ -32,6 +34,8 @@ const SCREENS: Record<string, ComponentType> = {
   openapi: OpenApiPage,
   documentation: DocumentationPage,
   'mock-servers': MockServersPage,
+  shortcuts: ShortcutsPage,
+  settings: SettingsPage,
 }
 
 export function AppShell() {
@@ -39,9 +43,20 @@ export function AppShell() {
   const onboardingComplete = useSession((s) => s.onboardingComplete)
   const paletteOpen = useSession((s) => s.paletteOpen)
   const setPaletteOpen = useSession((s) => s.setPaletteOpen)
+  const activeTabId = useSession((s) => s.activeTabId)
+  const closeTab = useSession((s) => s.closeTab)
 
   useKeyboardShortcut(['cmd'], 'k', () => setPaletteOpen(!paletteOpen))
+  useKeyboardShortcut(['cmd'], 'p', () => setPaletteOpen(!paletteOpen), { allowInInputs: true })
   useKeyboardShortcut([], 'escape', () => setPaletteOpen(false), { allowInInputs: true })
+  useKeyboardShortcut(
+    ['cmd'],
+    'w',
+    () => {
+      if (activeTabId) closeTab(activeTabId)
+    },
+    { allowInInputs: true }
+  )
 
   if (!onboardingComplete) return <Onboarding />
 

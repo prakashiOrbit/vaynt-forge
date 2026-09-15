@@ -8,6 +8,7 @@ import { useRequestDraft, useRequestDrafts } from '../stores/requestDrafts'
 import { useResponseEntry, useResponses } from '../stores/responses'
 import { useDragResize } from '../lib/useDragResize'
 import { runAndRecordRequest } from '../lib/runAndRecord'
+import { useKeyboardShortcut } from '../lib/shortcuts'
 import { RequestExplorer } from '../components/request-builder/RequestExplorer'
 import { RequestHeader } from '../components/request-builder/RequestHeader'
 import { ParamsPanel } from '../components/request-builder/ParamsPanel'
@@ -105,6 +106,46 @@ export function RequestBuilderPage() {
     ])
     return [...names]
   }, [activeEnv, globalVariables, draft?.variables])
+
+  // Cmd+Enter/Cmd+S must fire from anywhere (including inside the URL/body
+  // editors), so they're registered here rather than as button onClicks —
+  // guarded inline since `draft`/`tab` aren't narrowed non-null until after
+  // the early return below.
+  useKeyboardShortcut(
+    ['cmd'],
+    'enter',
+    () => {
+      if (!draft || !tab || tab.kind || !activeTabId) return
+      const needsConfirm = draft.method === 'DELETE' && Boolean(activeEnv?.isProduction)
+      if (needsConfirm) {
+        setConfirmDestructiveSend(true)
+        return
+      }
+      runAndRecordRequest({
+        request: draft,
+        tabId: activeTabId,
+        workspaceId: activeWorkspaceId,
+        environmentId: activeEnvironmentId,
+        globalVariables,
+        environment: activeEnv,
+      }).catch((err) => {
+        useResponses.getState().setSending(activeTabId, false)
+        toast.error('Send failed', err instanceof Error ? err.message : String(err))
+      })
+    },
+    { allowInInputs: true }
+  )
+  useKeyboardShortcut(
+    ['cmd'],
+    's',
+    () => {
+      if (!draft || !tab || tab.kind || !activeTabId) return
+      void useData.getState().saveRequest(draft)
+      updateTab(activeTabId, { dirty: false })
+      toast.success('Request saved', draft.name)
+    },
+    { allowInInputs: true }
+  )
 
   if (!activeTabId || !tab || !draft) {
     return (

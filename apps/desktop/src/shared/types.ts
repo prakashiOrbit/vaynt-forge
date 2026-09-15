@@ -102,6 +102,7 @@ export interface StorageChannel {
   deletePerformanceRun(id: string): Promise<void>
 
   addHistory(entry: Omit<HistoryEntry, 'id'>): Promise<HistoryEntry>
+  deleteHistoryEntry(id: string): Promise<void>
   clearHistory(workspaceId: string): Promise<void>
 
   saveTestRun(run: TestRun): Promise<TestRun>

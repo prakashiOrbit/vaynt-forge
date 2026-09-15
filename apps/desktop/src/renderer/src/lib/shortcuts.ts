@@ -39,7 +39,13 @@ export function useKeyboardShortcut(
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!allowInInputs && e.key.toLowerCase() !== 'escape' && isEditableTarget(e.target)) return
-      if (matches(e, mods, key)) handlerRef.current(e)
+      if (matches(e, mods, key)) {
+        // Several of these shadow real Chromium/Electron defaults (Cmd+S →
+        // Save Page, Cmd+W → close window, Cmd+P → Print) that would fire
+        // alongside our handler, or instead of it, if left unprevented.
+        e.preventDefault()
+        handlerRef.current(e)
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)

@@ -3,7 +3,8 @@ import { Check, ChevronsUpDown, Layers } from 'lucide-react'
 import { ConfirmDialog } from '@vayntforge/ui'
 import type { Environment } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
-import { useActiveWorkspaceData } from '../stores/data'
+import { useActiveWorkspaceData, useData } from '../stores/data'
+import { useKeyboardShortcut } from '../lib/shortcuts'
 
 export function EnvironmentSelector() {
   const [open, setOpen] = useState(false)
@@ -12,9 +13,22 @@ export function EnvironmentSelector() {
   const activeId = useSession((s) => s.activeEnvironmentId)
   const setActiveEnvironment = useSession((s) => s.setActiveEnvironment)
 
+  const workspaceId = useSession((s) => s.activeWorkspaceId)
   const environments = useActiveWorkspaceData().environments
 
   const active = environments.find((e) => e.id === activeId)
+
+  const switchTo = (env: Environment) => {
+    setActiveEnvironment(env.id)
+    void useData.getState().addNotification({
+      workspaceId,
+      tone: env.isProduction ? 'warning' : 'info',
+      title: `Switched to ${env.name}`,
+      message: env.isProduction ? 'This is a Production environment.' : undefined,
+      read: false,
+      dismissed: false,
+    })
+  }
 
   useEffect(() => {
     if (environments.length > 0 && !environments.some((e) => e.id === activeId)) {
@@ -23,6 +37,19 @@ export function EnvironmentSelector() {
       setActiveEnvironment('')
     }
   }, [environments, activeId, setActiveEnvironment])
+
+  useKeyboardShortcut(
+    ['cmd', 'shift'],
+    'e',
+    () => {
+      if (environments.length === 0) return
+      const currentIndex = environments.findIndex((e) => e.id === activeId)
+      const next = environments[(currentIndex + 1) % environments.length]!
+      if (next.isProduction && next.id !== activeId) setPendingProd(next)
+      else switchTo(next)
+    },
+    { allowInInputs: true }
+  )
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -66,7 +93,7 @@ export function EnvironmentSelector() {
                 if (env.isProduction && env.id !== activeId) {
                   setPendingProd(env)
                 } else {
-                  setActiveEnvironment(env.id)
+                  switchTo(env)
                 }
                 setOpen(false)
               }}
@@ -91,7 +118,7 @@ export function EnvironmentSelector() {
         confirmLabel="Switch anyway"
         tone="danger"
         onConfirm={() => {
-          if (pendingProd) setActiveEnvironment(pendingProd.id)
+          if (pendingProd) switchTo(pendingProd)
           setPendingProd(null)
         }}
         onCancel={() => setPendingProd(null)}

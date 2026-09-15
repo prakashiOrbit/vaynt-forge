@@ -23,6 +23,17 @@ export async function runAndRecordRequest(params: {
   useResponses.getState().setSending(tabId, true)
   const result = await sendRequest(request, globalVariables, environment, extraVariables)
   useResponses.getState().setResult(tabId, result.response, { pre: result.preScript, post: result.postScript })
+  const isFailure = Boolean(result.response.error) || result.response.status >= 500
+  if (isFailure) {
+    void useData.getState().addNotification({
+      workspaceId,
+      tone: 'error',
+      title: 'Request failed',
+      message: `${request.method} ${request.name} — ${result.response.error ? result.response.error.code : `${result.response.status} ${result.response.statusText}`}`,
+      read: false,
+      dismissed: false,
+    })
+  }
   void useData.getState().addHistory(workspaceId, {
     workspaceId,
     requestId: request.id,

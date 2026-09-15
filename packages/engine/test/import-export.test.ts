@@ -4,7 +4,6 @@ import {
   parsePostmanCollection,
   parseHar,
   parseCurlCommand,
-  exportCollectionNative,
   exportCollectionPostman,
   exportCollectionOpenApi,
   parseOpenApiSpec,
@@ -136,13 +135,6 @@ function collection(): Collection {
 function request(overrides: Partial<RequestModel> = {}): RequestModel {
   return { ...createDraftRequest({ id: 'req_1', workspaceId: 'ws_1', url: 'https://api.acme.dev/v1/users/{{id}}' }), ...overrides }
 }
-
-test('exportCollectionNative round-trips name/description/requests', () => {
-  const out = exportCollectionNative(collection(), [request()])
-  assert.equal(out.format, 'vaynt-forge-collection')
-  assert.equal(out.collection.name, 'Acme')
-  assert.equal(out.requests.length, 1)
-})
 
 test('exportCollectionPostman produces an item per request with method/url', () => {
   const out = exportCollectionPostman(collection(), [request({ method: 'POST' })]) as { item: { request: { method: string; url: { raw: string } } }[] }

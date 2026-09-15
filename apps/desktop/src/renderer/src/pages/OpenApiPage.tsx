@@ -79,6 +79,14 @@ export function OpenApiPage() {
     })
     setSelectedSpec(created.id)
     toast.success('OpenAPI spec imported', created.name)
+    void useData.getState().addNotification({
+      workspaceId: activeWorkspaceId,
+      tone: 'success',
+      title: 'OpenAPI spec imported',
+      message: created.name,
+      read: false,
+      dismissed: false,
+    })
   }
 
   const onFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Copy, Loader2, MoreHorizontal, Save, Send, Trash2 } from 'lucide-react'
+import { Code2, Copy, Loader2, MoreHorizontal, Save, Send, Trash2 } from 'lucide-react'
 import { Button, ConfirmDialog, MethodSelect, VariableInput, toast, useContextMenu } from '@vayntforge/ui'
 import { toCurl } from '../../lib/toCurl'
+import { CodeGenModal } from './CodeGenModal'
 import type { RequestPanelProps } from './types'
 
 interface RequestHeaderProps extends RequestPanelProps {
@@ -28,6 +29,7 @@ export function RequestHeader({
 }: RequestHeaderProps) {
   const { openContextMenu } = useContextMenu()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [codeGenOpen, setCodeGenOpen] = useState(false)
 
   const openMore = (e: React.MouseEvent) => {
     openContextMenu(e, [
@@ -39,6 +41,7 @@ export function RequestHeader({
           toast.success('Copied as cURL')
         },
       },
+      { label: 'Generate code', icon: <Code2 className="h-3.5 w-3.5" />, onSelect: () => setCodeGenOpen(true) },
       { label: 'Duplicate request', icon: <Copy className="h-3.5 w-3.5" />, onSelect: onDuplicate },
       { separator: true },
       {
@@ -92,6 +95,7 @@ export function RequestHeader({
         }}
         onCancel={() => setConfirmDelete(false)}
       />
+      <CodeGenModal draft={draft} open={codeGenOpen} onClose={() => setCodeGenOpen(false)} />
     </div>
   )
 }

@@ -424,6 +424,9 @@ export class SQLiteStorage implements StorageProvider {
       (a, b) => b.timestamp - a.timestamp
     )
   }
+  deleteHistoryEntry(id: string): void {
+    this.remove('history', id)
+  }
   clearHistory(workspaceId: string): void {
     this.removeWhere('history', 'workspace_id', workspaceId)
   }

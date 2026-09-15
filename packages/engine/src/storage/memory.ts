@@ -227,6 +227,9 @@ export class InMemoryStorage implements StorageProvider {
   listHistory(workspaceId: string): HistoryEntry[] {
     return this.history.filter((h) => h.workspaceId === workspaceId)
   }
+  deleteHistoryEntry(id: string): void {
+    this.history = this.history.filter((h) => h.id !== id)
+  }
   clearHistory(workspaceId: string): void {
     this.history = this.history.filter((h) => h.workspaceId !== workspaceId)
   }

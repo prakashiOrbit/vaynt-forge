@@ -114,7 +114,8 @@ function refreshHostingBuckets(ids: string[]): (state: DataState) => Promise<voi
             b.environments.some((e) => e.id === id) ||
             b.globalVariables.some((g) => g.id === id) ||
             b.testRuns.some((t) => t.id === id) ||
-            b.notifications.some((n) => n.id === id)
+            b.notifications.some((n) => n.id === id) ||
+            b.history.some((h) => h.id === id)
         )
       )
       .map(([key]) => key)
@@ -163,6 +164,7 @@ interface DataState {
   deletePerformanceRun(id: string): Promise<void>
 
   addHistory(workspaceId: string, entry: Omit<HistoryEntry, 'id'>): Promise<void>
+  deleteHistoryEntry(id: string): Promise<void>
   clearHistory(workspaceId: string): Promise<void>
 
   saveTestRun(run: TestRun): Promise<void>
@@ -320,6 +322,10 @@ export const useData = create<DataState>()((set, get) => ({
   addHistory: async (workspaceId, entry) => {
     await call('addHistory', entry)
     await get().refresh(workspaceId)
+  },
+  deleteHistoryEntry: async (id) => {
+    await call('deleteHistoryEntry', id)
+    await refreshHostingBuckets([id])(get())
   },
   clearHistory: async (workspaceId) => {
     await call('clearHistory', workspaceId)

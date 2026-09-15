@@ -171,6 +171,14 @@ export function CollectionRunner({
     const p = allResults.filter((r) => r.status === 'pass').length
     const f = allResults.filter((r) => r.status === 'fail').length
     toast[f > 0 ? 'error' : 'success']('Run complete', `${p} passed · ${f} failed`)
+    void useData.getState().addNotification({
+      workspaceId: activeWorkspaceId,
+      tone: f > 0 ? 'error' : 'success',
+      title: 'Collection run complete',
+      message: `${collection?.name ?? 'Collection'} · ${p} passed · ${f} failed`,
+      read: false,
+      dismissed: false,
+    })
   }
 
   const openFailedRequest = (requestId: string) => {
