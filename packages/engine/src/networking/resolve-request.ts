@@ -26,7 +26,7 @@ function enabledResolved(pairs: KeyValuePair[], ctx: ResolutionContext): KeyValu
 
 /** Resolves `{{variables}}` across url/params/headers/body and applies auth — shared by every client. */
 export function resolveRequest(request: RequestModel, ctx: ResolutionContext): ResolvedRequest {
-  const authContrib = applyAuth(request.auth)
+  const authContrib = applyAuth(request.auth, ctx)
 
   const params = [...enabledResolved(request.params, ctx), ...authContrib.params]
   const headerPairs = [...enabledResolved(request.headers, ctx), ...authContrib.headers]

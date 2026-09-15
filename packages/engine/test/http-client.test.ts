@@ -97,6 +97,72 @@ test('applies bearer auth as a real Authorization header', async () => {
   }
 })
 
+// Found by actually sending a real request with `{{authToken}}` typed into
+// the Bearer Token field — the obvious way to keep a secret out of the
+// request itself — and discovering the literal, unresolved placeholder went
+// out over the wire instead of the real token. Every other value in the app
+// resolved `{{variables}}`; auth fields were the one silent exception.
+test('resolves a {{variable}} inside a bearer token before sending', async () => {
+  let seenAuth = ''
+  const server = await startServer((req, res) => {
+    seenAuth = req.headers.authorization ?? ''
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'r11', workspaceId: 'w1', url: `${server.url}/ok` })
+    req.auth = { type: 'bearer', token: '{{authToken}}' }
+    const ctx = { variables: collectVariables({ environment: [{ key: 'authToken', value: 'real-secret-999' }] }) }
+    await new UndiciRequestClient().execute(req, ctx)
+    assert.equal(seenAuth, 'Bearer real-secret-999')
+  } finally {
+    await server.close()
+  }
+})
+
+test('resolves {{variables}} inside basic-auth username/password', async () => {
+  let seenAuth = ''
+  const server = await startServer((req, res) => {
+    seenAuth = req.headers.authorization ?? ''
+    res.writeHead(200)
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'r12', workspaceId: 'w1', url: `${server.url}/ok` })
+    req.auth = { type: 'basic', username: '{{user}}', password: '{{pass}}' }
+    const ctx = {
+      variables: collectVariables({
+        environment: [
+          { key: 'user', value: 'admin' },
+          { key: 'pass', value: 'hunter2' },
+        ],
+      }),
+    }
+    await new UndiciRequestClient().execute(req, ctx)
+    assert.equal(seenAuth, `Basic ${Buffer.from('admin:hunter2').toString('base64')}`)
+  } finally {
+    await server.close()
+  }
+})
+
+test('resolves a {{variable}} inside an apiKey header value', async () => {
+  let seenKey = ''
+  const server = await startServer((req, res) => {
+    seenKey = (req.headers['x-api-key'] as string) ?? ''
+    res.writeHead(200)
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'r13', workspaceId: 'w1', url: `${server.url}/ok` })
+    req.auth = { type: 'apiKey', location: 'header', key: 'X-API-Key', value: '{{apiKey}}' }
+    const ctx = { variables: collectVariables({ environment: [{ key: 'apiKey', value: 'key-abc-123' }] }) }
+    await new UndiciRequestClient().execute(req, ctx)
+    assert.equal(seenKey, 'key-abc-123')
+  } finally {
+    await server.close()
+  }
+})
+
 test('resolves {{variables}} in the URL before sending', async () => {
   let seenPath = ''
   const server = await startServer((req, res) => {
