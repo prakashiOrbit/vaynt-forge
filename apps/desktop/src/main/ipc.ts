@@ -1,5 +1,13 @@
 import { dialog, ipcMain, BrowserWindow } from 'electron'
-import { collectVariables, type RequestModel, type ScriptContext } from '@vayntforge/engine'
+import {
+  collectVariables,
+  resolveRequest,
+  cookieHeaderForUrl,
+  cookiesFromResponse,
+  mergeIntoJar,
+  type RequestModel,
+  type ScriptContext,
+} from '@vayntforge/engine'
 import { UndiciRequestClient } from '@vayntforge/engine/networking/http-client'
 import { IPC } from '../shared/ipc'
 import type { StorageService } from './storageService'
@@ -69,6 +77,8 @@ const STORAGE_METHODS = new Set([
   'addNotification',
   'updateNotification',
   'clearNotifications',
+  'saveCookieJar',
+  'clearCookieJar',
   'secretsSupported',
 ])
 
@@ -95,8 +105,48 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   // Real network execution — this is what the renderer's Send button calls
   // (see sendRequest.ts). Genuine undici HTTP, not a simulation.
+  //
+  // Cookie jar: transparent, like a browser's or Postman's. Before sending,
+  // inject whatever cookies the workspace's jar has for this request's
+  // resolved URL (unless the request already sets its own Cookie header —
+  // an explicit header always wins). After a real response comes back, fold
+  // any Set-Cookie headers it carried into the jar and persist it. Both
+  // steps are skipped entirely when the request already has an explicit
+  // Cookie header, and skipped/no-op when the response sets no cookies.
   ipcMain.handle(IPC.NETWORK_EXECUTE, async (_event, request: RequestModel, scopes: VariableScopes) => {
-    return realClient.execute(request, { variables: collectVariables(scopes) })
+    const ctx = { variables: collectVariables(scopes) }
+    const hasExplicitCookieHeader = request.headers.some((h) => h.enabled && h.key.toLowerCase() === 'cookie')
+
+    let requestToSend = request
+    let resolvedUrl: string | undefined
+    try {
+      resolvedUrl = resolveRequest(request, ctx.variables).url
+    } catch {
+      resolvedUrl = undefined // an unresolvable URL just falls through to realClient's own error handling
+    }
+
+    if (!hasExplicitCookieHeader && resolvedUrl) {
+      const jarHeader = cookieHeaderForUrl(storage.getCookieJar(request.workspaceId), resolvedUrl, Date.now())
+      if (jarHeader) {
+        requestToSend = {
+          ...request,
+          headers: [...request.headers, { id: '__cookie_jar__', key: 'Cookie', value: jarHeader, enabled: true }],
+        }
+      }
+    }
+
+    const response = await realClient.execute(requestToSend, ctx)
+
+    if (resolvedUrl && response.cookies.length > 0) {
+      const now = Date.now()
+      const incoming = cookiesFromResponse(response.cookies, resolvedUrl, now)
+      if (incoming.length > 0) {
+        const merged = mergeIntoJar(storage.getCookieJar(request.workspaceId), incoming, now)
+        await storage.saveCookieJar(request.workspaceId, merged)
+      }
+    }
+
+    return response
   })
 
   ipcMain.handle(IPC.SCRIPTS_RUN, async (_event, code: string, context: ScriptContext) => {

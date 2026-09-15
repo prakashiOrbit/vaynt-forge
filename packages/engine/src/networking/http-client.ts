@@ -24,6 +24,7 @@ function parseCookies(headers: Record<string, string | string[] | undefined>): R
       if (key === 'domain') cookie.domain = v
       else if (key === 'path') cookie.path = v
       else if (key === 'expires') cookie.expires = v
+      else if (key === 'max-age' && v && !Number.isNaN(Number(v))) cookie.maxAge = Number(v)
       else if (key === 'httponly') cookie.httpOnly = true
       else if (key === 'secure') cookie.secure = true
     }

@@ -30,6 +30,7 @@ import type {
   PerformanceRun,
   PerfTestConfig,
   PerfSample,
+  JarCookie,
 } from '@vayntforge/engine'
 
 /** Auto-update status, pushed from `main/updater.ts` over `IPC.UPDATE_STATUS`. */
@@ -68,6 +69,7 @@ export interface WorkspaceSnapshot {
   testRuns: TestRun[]
   settings: AppSettings
   notifications: AppNotification[]
+  cookies: JarCookie[]
   secretsSupported: boolean
   updatedAt: number
 }
@@ -122,6 +124,10 @@ export interface StorageChannel {
   addNotification(input: NotificationDraft): Promise<AppNotification>
   updateNotification(id: string, patch: NotificationPatch): Promise<AppNotification>
   clearNotifications(workspaceId: string): Promise<void>
+
+  /** The per-workspace cookie jar Send/network:execute reads/writes automatically — see main/ipc.ts. */
+  saveCookieJar(workspaceId: string, cookies: JarCookie[]): Promise<void>
+  clearCookieJar(workspaceId: string): Promise<void>
 
   /** Whether the platform secure store is usable (affects secret masking UX). */
   secretsSupported(): Promise<boolean>

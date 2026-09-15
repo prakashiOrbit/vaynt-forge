@@ -19,6 +19,7 @@ import type { AppSettings } from '../../engine/src/types/settings'
 import type { AppNotification, NotificationPatch } from '../../engine/src/types/notifications'
 import type { OpenApiSpec } from '../../engine/src/openapi/types'
 import type { PerformanceRun } from '../../engine/src/types/performance'
+import type { JarCookie } from '../../engine/src/types/response'
 import { generateId } from '../../engine/src/util/id'
 
 export interface SQLiteStorageOptions {
@@ -40,6 +41,7 @@ type Table =
   | 'settings'
   | 'notifications'
   | 'performance_runs'
+  | 'cookie_jars'
 
 interface DataRow {
   data: string
@@ -80,6 +82,7 @@ export class SQLiteStorage implements StorageProvider {
       CREATE TABLE IF NOT EXISTS settings      (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS performance_runs (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS cookie_jars   (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_collections_ws   ON collections(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_folders_col      ON folders(collection_id);
       CREATE INDEX IF NOT EXISTS idx_requests_ws      ON requests(workspace_id);
@@ -189,7 +192,7 @@ export class SQLiteStorage implements StorageProvider {
         this.removeWhere('folders', 'collection_id', col.id)
         this.remove('collections', col.id)
       }
-      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'openapi_specs', 'history', 'test_runs', 'settings', 'notifications', 'performance_runs'] as Table[]) {
+      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'openapi_specs', 'history', 'test_runs', 'settings', 'notifications', 'performance_runs', 'cookie_jars'] as Table[]) {
         this.removeWhere(t, 'workspace_id', id)
       }
       this.remove('workspaces', id)
@@ -486,5 +489,18 @@ export class SQLiteStorage implements StorageProvider {
   }
   clearNotifications(workspaceId: string): void {
     this.removeWhere('notifications', 'workspace_id', workspaceId)
+  }
+
+  // ── Cookie jar ────────────────────────────────────────────
+  getCookieJar(workspaceId: string): JarCookie[] {
+    return this.byId<JarCookie[]>('cookie_jars', workspaceId) ?? []
+  }
+  saveCookieJar(workspaceId: string, cookies: JarCookie[]): void {
+    const existing = this.byId<JarCookie[]>('cookie_jars', workspaceId)
+    if (existing) {
+      this.update('cookie_jars', workspaceId, cookies)
+    } else {
+      this.write('cookie_jars', workspaceId, cookies, { workspaceId })
+    }
   }
 }

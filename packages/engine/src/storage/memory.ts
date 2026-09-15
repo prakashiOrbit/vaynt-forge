@@ -18,6 +18,7 @@ import type { AppSettings } from '../types/settings'
 import type { AppNotification } from '../types/notifications'
 import type { OpenApiSpec } from '../openapi/types'
 import type { PerformanceRun } from '../types/performance'
+import type { JarCookie } from '../types/response'
 import { seedProvider } from './seed'
 
 /**
@@ -39,6 +40,7 @@ export class InMemoryStorage implements StorageProvider {
   private testRuns = new Map<string, TestRun>()
   private settings = new Map<string, AppSettings>()
   private notifications = new Map<string, AppNotification>()
+  private cookieJars = new Map<string, JarCookie[]>()
   private seq = 0
 
   constructor(seed = true) {
@@ -86,6 +88,7 @@ export class InMemoryStorage implements StorageProvider {
     for (const r of this.listTestRuns(id)) this.testRuns.delete(r.id)
     for (const n of this.listNotifications(id)) this.notifications.delete(n.id)
     this.settings.delete(id)
+    this.cookieJars.delete(id)
     this.workspaces.delete(id)
   }
 
@@ -273,6 +276,14 @@ export class InMemoryStorage implements StorageProvider {
   }
   clearNotifications(workspaceId: string): void {
     for (const n of this.listNotifications(workspaceId)) this.notifications.delete(n.id)
+  }
+
+  // ── Cookie jar ────────────────────────────────────────────
+  getCookieJar(workspaceId: string): JarCookie[] {
+    return this.cookieJars.get(workspaceId) ?? []
+  }
+  saveCookieJar(workspaceId: string, cookies: JarCookie[]): void {
+    this.cookieJars.set(workspaceId, cookies)
   }
 }
 

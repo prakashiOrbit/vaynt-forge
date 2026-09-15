@@ -6,6 +6,7 @@ import type { AppSettings } from '../types/settings'
 import type { AppNotification, NotificationPatch } from '../types/notifications'
 import type { OpenApiSpec } from '../openapi/types'
 import type { PerformanceRun } from '../types/performance'
+import type { JarCookie } from '../types/response'
 
 export type WorkspaceDraft = Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>
 export type WorkspacePatch = Partial<Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>>
@@ -102,4 +103,8 @@ export interface StorageProvider {
   addNotification(input: NotificationDraft): AppNotification
   updateNotification(id: string, patch: NotificationPatch): AppNotification | undefined
   clearNotifications(workspaceId: string): void
+
+  // ── Cookie jar ────────────────────────────────────────────
+  getCookieJar(workspaceId: string): JarCookie[]
+  saveCookieJar(workspaceId: string, cookies: JarCookie[]): void
 }

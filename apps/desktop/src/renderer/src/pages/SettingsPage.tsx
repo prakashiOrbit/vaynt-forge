@@ -103,10 +103,12 @@ export function SettingsPage() {
   const setTheme = useSession((s) => s.setTheme)
   const workspaceId = useSession((s) => s.activeWorkspaceId)
   const setActiveNav = useSession((s) => s.setActiveNav)
-  const { settings, secretsSupported, history, environments } = useActiveWorkspaceData()
+  const { settings, secretsSupported, history, environments, cookies } = useActiveWorkspaceData()
   const saveSettings = useData((s) => s.saveSettings)
   const clearHistory = useData((s) => s.clearHistory)
+  const clearCookies = useData((s) => s.clearCookies)
   const [confirmClearHistory, setConfirmClearHistory] = useState(false)
+  const [confirmClearCookies, setConfirmClearCookies] = useState(false)
   const [certName, setCertName] = useState('')
   const [certPem, setCertPem] = useState('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
@@ -350,6 +352,14 @@ export function SettingsPage() {
                   <Trash2 className="h-3.5 w-3.5" /> Clear
                 </Button>
               </Row>
+              <Row
+                label="Cookie jar"
+                description={`${cookies.length} stored cookie${cookies.length === 1 ? '' : 's'}, automatically sent with matching requests and captured from real responses — same as a browser or Postman.`}
+              >
+                <Button size="sm" variant="ghost" onClick={() => setConfirmClearCookies(true)} disabled={cookies.length === 0}>
+                  <Trash2 className="h-3.5 w-3.5" /> Clear
+                </Button>
+              </Row>
               <p className="mt-3 text-[11px] text-faint">All data is stored locally in this device's SQLite database — nothing leaves your machine.</p>
             </>
           )}
@@ -428,6 +438,19 @@ export function SettingsPage() {
           void clearHistory(workspaceId)
         }}
         onCancel={() => setConfirmClearHistory(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmClearCookies}
+        title="Clear all cookies?"
+        description={`All ${cookies.length} stored cookie${cookies.length === 1 ? '' : 's'} will be permanently removed. You'll need to log in again on any site/API that relied on a session cookie.`}
+        confirmLabel="Clear all"
+        tone="danger"
+        onConfirm={() => {
+          setConfirmClearCookies(false)
+          void clearCookies(workspaceId)
+        }}
+        onCancel={() => setConfirmClearCookies(false)}
       />
     </div>
   )

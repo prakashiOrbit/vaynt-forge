@@ -24,6 +24,7 @@ import type {
   OpenApiSpec,
   OpenApiSpecDraft,
   PerformanceRun,
+  JarCookie,
 } from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../shared/types'
 
@@ -116,6 +117,7 @@ export class StorageService implements StorageChannel {
       testRuns: this.provider.listTestRuns(workspaceId),
       settings: mergeSettingsWithDefaults(this.provider.getSettings(workspaceId)),
       notifications: this.provider.listNotifications(workspaceId),
+      cookies: this.provider.getCookieJar(workspaceId),
       secretsSupported: new SafeStorageCodec().isAvailable(),
       updatedAt: Date.now(),
     }
@@ -246,6 +248,17 @@ export class StorageService implements StorageChannel {
   }
   async clearNotifications(workspaceId: string): Promise<void> {
     this.provider.clearNotifications(workspaceId)
+  }
+
+  // ── Cookie jar ────────────────────────────────────────────
+  getCookieJar(workspaceId: string): JarCookie[] {
+    return this.provider.getCookieJar(workspaceId)
+  }
+  async saveCookieJar(workspaceId: string, cookies: JarCookie[]): Promise<void> {
+    this.provider.saveCookieJar(workspaceId, cookies)
+  }
+  async clearCookieJar(workspaceId: string): Promise<void> {
+    this.provider.saveCookieJar(workspaceId, [])
   }
 
   async secretsSupported(): Promise<boolean> {

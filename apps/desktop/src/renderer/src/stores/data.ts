@@ -11,6 +11,7 @@ import type {
   FolderDraft,
   FolderPatch,
   HistoryEntry,
+  JarCookie,
   MockServer,
   NotificationDraft,
   OpenApiSpec,
@@ -52,6 +53,7 @@ export interface WorkspaceBucket {
   testRuns: TestRun[]
   settings: AppSettings
   notifications: AppNotification[]
+  cookies: JarCookie[]
   secretsSupported: boolean
 }
 
@@ -71,6 +73,7 @@ export const DEFAULT_BUCKET: WorkspaceBucket = {
   testRuns: [],
   settings: DEFAULT_APP_SETTINGS,
   notifications: [],
+  cookies: [],
   secretsSupported: true,
 }
 
@@ -91,6 +94,7 @@ function bucketFromSnapshot(snap: WorkspaceSnapshot): WorkspaceBucket {
     testRuns: snap.testRuns,
     settings: snap.settings,
     notifications: snap.notifications,
+    cookies: snap.cookies,
     secretsSupported: snap.secretsSupported,
   }
 }
@@ -176,6 +180,7 @@ interface DataState {
   dismissNotification(id: string): Promise<void>
   markAllNotificationsRead(workspaceId: string): Promise<void>
   clearNotifications(workspaceId: string): Promise<void>
+  clearCookies(workspaceId: string): Promise<void>
 }
 
 export const useData = create<DataState>()((set, get) => ({
@@ -367,6 +372,10 @@ export const useData = create<DataState>()((set, get) => ({
   },
   clearNotifications: async (workspaceId) => {
     await call('clearNotifications', workspaceId)
+    await get().refresh(workspaceId)
+  },
+  clearCookies: async (workspaceId) => {
+    await call('clearCookieJar', workspaceId)
     await get().refresh(workspaceId)
   },
 }))
