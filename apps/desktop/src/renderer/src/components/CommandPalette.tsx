@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { CornerDownLeft, Layers, Plus, Search } from 'lucide-react'
+import { CornerDownLeft, FolderOpen, History, Layers, Plus, Search, Send } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { InMemoryStorage } from '@apiforge/engine'
+import type { HttpMethod } from '@apiforge/engine'
 import { NAV_ITEMS } from '../navigation'
 import { useSession } from '../stores/session'
 import { useKeyboardShortcut } from '../lib/shortcuts'
@@ -22,6 +23,7 @@ export function CommandPalette() {
   const setActiveNav = useSession((s) => s.setActiveNav)
   const setActiveEnvironment = useSession((s) => s.setActiveEnvironment)
   const openNewRequest = useSession((s) => s.openNewRequest)
+  const openTab = useSession((s) => s.openTab)
 
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
@@ -46,8 +48,54 @@ export function CommandPalette() {
       icon: Plus,
       run: () => openNewRequest(),
     })
+
     const storage = new InMemoryStorage()
     const wsId = storage.listWorkspaces()[0]?.id ?? ''
+
+    for (const r of storage.listRequests(wsId).slice(0, 12)) {
+      list.push({
+        id: `req:${r.id}`,
+        group: 'Requests',
+        label: r.name,
+        hint: `${r.method} ${r.url}`,
+        keywords: r.method,
+        icon: Send,
+        run: () =>
+          openTab({ id: r.id, method: r.method as HttpMethod, name: r.name, url: r.url }),
+      })
+    }
+
+    for (const c of storage.listCollections(wsId)) {
+      const count = storage.listRequests(wsId).filter((r) => r.collectionId === c.id).length
+      list.push({
+        id: `col:${c.id}`,
+        group: 'Collections',
+        label: c.name,
+        hint: `${count} requests`,
+        keywords: 'collection',
+        icon: FolderOpen,
+        run: () => setActiveNav('collections'),
+      })
+    }
+
+    for (const h of storage.listHistory(wsId).slice(0, 8)) {
+      list.push({
+        id: `hist:${h.id}`,
+        group: 'History',
+        label: `${h.method} ${h.url}`,
+        hint: `${h.requestName} · ${h.status}`,
+        keywords: h.requestName,
+        icon: History,
+        run: () =>
+          openTab({
+            id: h.id,
+            method: h.method as HttpMethod,
+            name: h.requestName || h.method,
+            url: h.url,
+          }),
+      })
+    }
+
     for (const env of storage.listEnvironments(wsId)) {
       list.push({
         id: `env:${env.id}`,
@@ -60,7 +108,7 @@ export function CommandPalette() {
       })
     }
     return list
-  }, [setActiveNav, setActiveEnvironment, openNewRequest])
+  }, [setActiveNav, setActiveEnvironment, openNewRequest, openTab])
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()

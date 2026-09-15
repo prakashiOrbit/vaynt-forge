@@ -10,7 +10,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react'
-import { useSession } from '../stores/session'
+import { ConfirmDialog, toast } from '@apiforge/ui'
+import { useSession, type AppWorkspace } from '../stores/session'
 
 export function WorkspaceSwitcher() {
   const workspaces = useSession((s) => s.workspaces)
@@ -26,6 +27,7 @@ export function WorkspaceSwitcher() {
   const [name, setName] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [deleting, setDeleting] = useState<AppWorkspace | null>(null)
 
   const active = workspaces.find((w) => w.id === activeWorkspaceId)
 
@@ -46,20 +48,33 @@ export function WorkspaceSwitcher() {
     a.download = `${ws.name.replace(/\s+/g, '-').toLowerCase()}.workspace.json`
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('Workspace exported', `${ws.name} was saved as a JSON file.`)
   }
 
   const submitNew = () => {
     const trimmed = name.trim()
     if (!trimmed) return
     createWorkspace(trimmed)
+    toast.success('Workspace created', trimmed)
     setName('')
     setAdding(false)
     setOpen(false)
   }
 
   const submitRename = () => {
-    if (renamingId && renameValue.trim()) renameWorkspace(renamingId, renameValue.trim())
+    if (renamingId && renameValue.trim()) {
+      renameWorkspace(renamingId, renameValue.trim())
+      toast.success('Workspace renamed')
+    }
     setRenamingId(null)
+  }
+
+  const confirmDelete = () => {
+    if (deleting) {
+      deleteWorkspace(deleting.id)
+      toast.success('Workspace deleted', deleting.name)
+    }
+    setDeleting(null)
   }
 
   return (
@@ -150,7 +165,10 @@ export function WorkspaceSwitcher() {
                             <Pencil className="h-3 w-3" />
                           </button>
                           <button
-                            onClick={() => duplicateWorkspace(ws.id)}
+                            onClick={() => {
+                              duplicateWorkspace(ws.id)
+                              toast.success('Workspace duplicated', `${ws.name} Copy`)
+                            }}
                             aria-label={`Duplicate ${ws.name}`}
                             className="rounded p-0.5 hover:text-text"
                           >
@@ -164,7 +182,7 @@ export function WorkspaceSwitcher() {
                             <Download className="h-3 w-3" />
                           </button>
                           <button
-                            onClick={() => deleteWorkspace(ws.id)}
+                            onClick={() => setDeleting(ws)}
                             aria-label={`Delete ${ws.name}`}
                             disabled={workspaces.length <= 1}
                             className="rounded p-0.5 hover:text-err disabled:cursor-not-allowed disabled:opacity-30"
@@ -214,6 +232,21 @@ export function WorkspaceSwitcher() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Delete workspace?"
+        description={
+          <>
+            <strong className="font-medium text-text">{deleting?.name}</strong> and everything inside
+            it — collections, requests, environments, and history — will be permanently removed.
+            This can't be undone.
+          </>
+        }
+        confirmLabel="Delete workspace"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleting(null)}
+      />
     </div>
   )
 }

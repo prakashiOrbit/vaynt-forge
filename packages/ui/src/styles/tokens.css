@@ -45,11 +45,12 @@
   --af-error-text: #f87171;
 
   /* Fonts */
-  --af-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
-  --af-font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, Menlo, monospace;
+  --af-font-sans: 'Barlow', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --af-font-display: 'Barlow Condensed', 'Barlow', -apple-system, sans-serif;
+  --af-font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, Menlo, monospace;
 }
 
-body.light {
+:root[data-theme='light'] {
   color-scheme: light;
 
   --af-bg: #f4f5f7;

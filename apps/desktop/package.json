@@ -12,6 +12,9 @@
   "dependencies": {
     "@apiforge/engine": "*",
     "@apiforge/ui": "*",
+    "@fontsource/barlow": "^5.0.0",
+    "@fontsource/barlow-condensed": "^5.0.0",
+    "@fontsource/jetbrains-mono": "^5.0.0",
     "lucide-react": "^1.46.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

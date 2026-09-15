@@ -93,7 +93,7 @@ export function Onboarding() {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-2">
             <Command className="h-4.5 w-4.5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-[0.3em] text-text">APIFORGE</span>
+          <span className="text-lg font-bold tracking-[0.24em] text-text font-display">APIFORGE</span>
         </div>
         <h1 className="mt-6 text-center text-2xl font-semibold text-text">
           Build, test, debug, and understand your APIs.

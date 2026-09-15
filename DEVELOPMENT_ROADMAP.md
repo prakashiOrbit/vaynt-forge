@@ -105,26 +105,26 @@ shell — not the product.
 **Goal:** One consistent design system reusable across every screen.
 
 ### Tasks
-- [ ] Design tokens: background surfaces (deep charcoal / dark slate), borders (subtle), text contrast, accent (blue→violet), success/error, focus rings
-- [ ] Dark (default) + Light + System themes; theme toggle functional
-- [ ] Typography: Barlow / technical sans + Barlow Condensed for logo/brand; JetBrains Mono for code
-- [ ] `StatusBadge` (method, status codes, severity)
-- [ ] `DataTable` (dense, sortable, resizable columns)
-- [ ] `EmptyState`, `ErrorState`, `LoadingState` (skeletons) — technical visual language, no stock illustrations
-- [ ] `ConfirmDialog` (support for dangerous-action warnings)
-- [ ] Toasts + `NotificationCenter`
-- [ ] Desktop-style **context menus** (collections/requests/explorer)
-- [ ] `Modal` / `Drawer` primitives
-- [ ] Tooltips with sensible delay; keyboard-focusable; ARIA labels throughout
-- [ ] Full `CommandPalette` with sections (Requests, Collections, Environments, Variables, History, Documentation, Settings, Commands)
-- [ ] **Interaction-layer micro-interactions** (shared, consistent): hover states, active-nav state, tab switch feedback, request-send animation, response-loading sweep, success confirmation, slide-in toasts, expandable JSON, collapsible sidebar, palette open/close animation — fast, never playful
-- [ ] **Resize behaviour**: 1440×900 primary; verify 1280×800 (panels collapse, sidebar collapses, request/response can stack), 1600×1000, 1920×1080
+- [x] Design tokens: background surfaces (deep charcoal / dark slate), borders (subtle), text contrast, accent (blue→violet), success/error, focus rings
+- [x] Dark (default) + Light + System themes; theme toggle functional
+- [x] Typography: Barlow / technical sans + Barlow Condensed for logo/brand; JetBrains Mono for code
+- [x] `StatusBadge` (method, status codes, severity)
+- [x] `DataTable` (dense, sortable, resizable columns)
+- [x] `EmptyState`, `ErrorState`, `LoadingState` (skeletons) — technical visual language, no stock illustrations
+- [x] `ConfirmDialog` (support for dangerous-action warnings)
+- [x] Toasts + `NotificationCenter`
+- [x] Desktop-style **context menus** (collections/requests/explorer)
+- [x] `Modal` / `Drawer` primitives
+- [x] Tooltips with sensible delay; keyboard-focusable; ARIA labels throughout
+- [x] Full `CommandPalette` with sections (Requests, Collections, Environments, Variables, History, Documentation, Settings, Commands)
+- [x] **Interaction-layer micro-interactions** (shared, consistent): hover states, active-nav state, tab switch feedback, request-send animation, response-loading sweep, success confirmation, slide-in toasts, expandable JSON, collapsible sidebar, palette open/close animation — fast, never playful
+- [~] **Resize behaviour**: 1440×900 primary; verify 1280×800 (panels collapse, sidebar collapses, request/response can stack), 1600×1000, 1920×1080 — *structural layout is responsive; manual 1280/1600/1920 visual pass pending on user side (tabs/responsive toasts/EmptyState polish was fold into Sprint 5+)*
 
 ### Acceptance criteria
-- [ ] Theme toggle works across all screens (dark/light/system)
-- [ ] All these components rendered and used on at least one screen
-- [ ] No visual regressions in dev vs the design spec (dense, panels, no huge cards)
-- [ ] Keyboard navigation + visible focus verified on primary flows
+- [x] Theme toggle works across all screens (dark/light/system)
+- [x] All these components rendered and used on at least one screen
+- [x] No visual regressions in dev vs the design spec (dense, panels, no huge cards)
+- [x] Keyboard navigation + visible focus verified on primary flows
 
 ---
 
@@ -431,6 +431,7 @@ shell — not the product.
 |---|---|---|
 | Sprint 0 — Foundations | ✅ Built | Monorepo, Electron+react shell, engine/ui/config packages, typecheck+build green, app boots |
 | Sprint 1 — Application Shell & Navigation | ✅ Built | Onboarding, workspace switcher (CRUD), Cmd+K command palette, resizable sidebar, keyboard-shortcut foundation, live tab/home actions |
+| Sprint 2 — Design System & Shared UI Primitives | ✅ Built | Dark/Light/System themes + Barlow/JetBrains Mono type; DataTable, Empty/Error/Loading states, ConfirmDialog, Toasts + NotificationCenter, ContextMenu, Modal/Drawer, Tooltips, full palette sections; real Requests & History screens; micro-interaction animations |
 | Sprint 1 — App Shell | Not started | |
 | Sprint 2 — Design System | Not started | |
 | Sprint 3 — Engine Core | Not started | |
