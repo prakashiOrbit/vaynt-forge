@@ -93,8 +93,8 @@ export function registerIpcHandlers(storage: StorageService): void {
     return result.filePaths[0]
   })
 
-  // Real network execution — reachable, tested, genuinely functional, but
-  // not what the renderer's Send button calls (see networking/client.ts).
+  // Real network execution — this is what the renderer's Send button calls
+  // (see sendRequest.ts). Genuine undici HTTP, not a simulation.
   ipcMain.handle(IPC.NETWORK_EXECUTE, async (_event, request: RequestModel, scopes: VariableScopes) => {
     return realClient.execute(request, { variables: collectVariables(scopes) })
   })

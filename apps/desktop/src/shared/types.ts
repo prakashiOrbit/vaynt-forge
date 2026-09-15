@@ -146,9 +146,10 @@ export interface VayntForgeApi {
   }
   network: {
     /**
-     * Real `undici`-based execution. Reachable and tested, but the renderer's
-     * Send button deliberately does not call this — see
-     * DEVELOPMENT_ROADMAP.md's Sprint 6 "Out of Scope" note.
+     * Real `undici`-based execution — genuine DNS/TLS/HTTP against whatever
+     * URL the request resolves to. This is what `sendRequest.ts` calls for
+     * the renderer's Send button (see DEVELOPMENT_ROADMAP.md's post-Sprint-13
+     * note under Sprint 6 for when/why this changed from a mocked response).
      */
     execute(request: RequestModel, scopes: VariableScopes): Promise<ResponseModel>
   }

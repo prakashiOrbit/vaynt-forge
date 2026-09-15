@@ -43,6 +43,13 @@ export function resolveRequest(request: RequestModel, ctx: ResolutionContext): R
     const contentType = defaultContentType(request)
     if (contentType) headers['Content-Type'] = contentType
   }
+  // Real-world APIs commonly reject requests with no User-Agent at all
+  // (e.g. GitHub's API returns a 403 "Please make sure your request has a
+  // User-Agent header") — found by actually sending a real request, not
+  // read from docs. Only filled in when the user hasn't already set one.
+  if (!hasHeader(headers, 'user-agent')) {
+    headers['User-Agent'] = 'VayntForge/1.0'
+  }
 
   return { url: url.toString(), method: request.method, headers, body }
 }

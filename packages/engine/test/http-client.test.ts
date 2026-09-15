@@ -144,3 +144,40 @@ test('an invalid URL surfaces as a ClientError, not a throw', async () => {
   assert.equal(res.status, 0)
   assert.ok(res.error)
 })
+
+// Found by actually sending a real request to a real API (GitHub's) and
+// getting rejected — real-world APIs commonly require a User-Agent header,
+// which this client sent with none at all before this fix.
+test('sends a default User-Agent when the request has none', async () => {
+  let receivedUA: string | undefined
+  const server = await startServer((req, res) => {
+    receivedUA = req.headers['user-agent']
+    res.writeHead(200)
+    res.end('ok')
+  })
+  try {
+    const req = createDraftRequest({ id: 'r9', workspaceId: 'w1', url: `${server.url}/ua` })
+    await new UndiciRequestClient().execute(req, emptyCtx)
+    assert.ok(receivedUA, 'expected a User-Agent header to be sent')
+    assert.match(receivedUA!, /VayntForge/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('an explicit User-Agent header overrides the default', async () => {
+  let receivedUA: string | undefined
+  const server = await startServer((req, res) => {
+    receivedUA = req.headers['user-agent']
+    res.writeHead(200)
+    res.end('ok')
+  })
+  try {
+    const req = createDraftRequest({ id: 'r10', workspaceId: 'w1', url: `${server.url}/ua` })
+    req.headers.push({ id: 'h1', key: 'User-Agent', value: 'MyCustomAgent/2.0', enabled: true })
+    await new UndiciRequestClient().execute(req, emptyCtx)
+    assert.equal(receivedUA, 'MyCustomAgent/2.0')
+  } finally {
+    await server.close()
+  }
+})

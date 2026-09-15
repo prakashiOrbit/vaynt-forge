@@ -3,7 +3,7 @@ export const IPC = {
   /** Generic typed call into the main-process storage service. */
   STORAGE_CALL: 'storage:call',
   DIALOG_OPEN_FILE: 'dialog:openFile',
-  /** Real undici-based execution — not what the Send button calls, see Out of Scope. */
+  /** Real undici-based execution — what the renderer's Send button calls. */
   NETWORK_EXECUTE: 'network:execute',
   SCRIPTS_RUN: 'scripts:run',
   GRPC_START: 'network:grpc:start',

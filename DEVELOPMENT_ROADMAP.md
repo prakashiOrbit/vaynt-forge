@@ -242,6 +242,8 @@ shell — not the product.
 - AWS SigV4 request signing is not implemented (`auth.ts` skips it rather than fake a signature) — same treatment as `custom` auth, which was already documented in Sprint 5 as pre-request-script territory.
 - Environment variable writeback from `pm.environment.set()` is send-scoped only, not persisted.
 
+> **Update (post-Sprint-13):** the Send button now calls the real `UndiciRequestClient` via `network:execute` IPC, not `MockRequestClient` — see the Delivered log entry below this note. `MockRequestClient` still exists (used by nothing in the UI anymore) since deleting it wasn't asked for. One direct consequence: the seeded demo workspace's requests target `api.acme.dev`, a domain that was never real — deliberately chosen so `MockRequestClient` could pattern-match it. Those demo requests will now fail with a real DNS/connection error (`ENOTFOUND` or similar) instead of returning the canned 200/500 examples. That's expected, not a bug — point a demo request at a real URL (or the workspace's own running Mock Server, e.g. `http://localhost:4010/users`) to see it actually work.
+
 ---
 
 ## Sprint 7 — Collections, Environments & Chaining
@@ -442,8 +444,6 @@ shell — not the product.
 
 ## Out of Scope (v1 — committed)
 
-- Real external-network calls to arbitrary servers (all networking is mocked/simulated
-  for the prototype; engine code paths ready but not exercised in production builds)
 - Backend/cloud sync, real multi-user team workspaces (concept only)
 - Tauri shell, Rust sidecar (deferred; shell-agnostic engine keeps this open)
 - Mobile UI

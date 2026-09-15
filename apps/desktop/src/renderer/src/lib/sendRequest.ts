@@ -1,4 +1,3 @@
-import { MockRequestClient, collectVariables } from '@vayntforge/engine'
 import type { Environment, RequestModel, ResponseModel, ScriptResult, Variable } from '@vayntforge/engine'
 
 export type KV = { key: string; value: string }
@@ -42,11 +41,13 @@ export interface SendResult {
 }
 
 /**
- * Runs the full Sprint 6 send pipeline: pre-request script → variable
- * resolution → (mocked) execution → post-response script. Script environment
- * patches only affect variable resolution for *this* send — they are not
- * persisted back to the real environment (that would be a bigger feature:
- * deciding which scope to write to, confirming overwrites, etc.).
+ * Runs the full send pipeline: pre-request script → variable resolution →
+ * real network execution (via `UndiciRequestClient` over `network:execute`
+ * IPC — genuine DNS/TLS/HTTP, not a simulation) → post-response script.
+ * Script environment patches only affect variable resolution for *this*
+ * send — they are not persisted back to the real environment (that would be
+ * a bigger feature: deciding which scope to write to, confirming
+ * overwrites, etc.).
  *
  * `extraVariables` is Sprint 7's hook for the Collection Runner: chain-rule
  * extractions from earlier requests in the same run, and the current data-file
@@ -73,14 +74,11 @@ export async function sendRequest(
   }
 
   const effectiveEnvVars = withPatch(baseEnvVars, preScript?.environmentPatch)
-  const ctx = {
-    variables: collectVariables({
-      global: toKV(globalVariables),
-      environment: toKV(effectiveEnvVars),
-      request: requestScope,
-    }),
-  }
-  const response = await new MockRequestClient().execute(draft, ctx)
+  const response = await window.vayntforge.network.execute(draft, {
+    global: toKV(globalVariables),
+    environment: toKV(effectiveEnvVars),
+    request: requestScope,
+  })
 
   let postScript: ScriptResult | undefined
   if (draft.scripts.postResponse.trim()) {

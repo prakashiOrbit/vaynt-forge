@@ -42,10 +42,13 @@ function flattenHeaders(headers: Record<string, string | string[] | undefined>):
 
 /**
  * Real `undici`-based client — genuinely performs the HTTP call, follows
- * redirects itself (to capture the full chain), and reports timing. Per
- * DEVELOPMENT_ROADMAP.md's Out-of-Scope note, this is NOT what the Send
- * button calls (demo requests target a domain that doesn't resolve); it's
- * reachable over `network:execute` IPC and covered by real tests instead.
+ * redirects itself (to capture the full chain), and reports timing. This is
+ * what the renderer's Send button calls (via `network:execute` IPC — see
+ * `sendRequest.ts`), as of the post-Sprint-13 networking change. One
+ * consequence: the seeded demo workspace's `api.acme.dev` requests never
+ * resolved to anything real, so they'll now genuinely fail with a DNS/
+ * connection error instead of returning a canned response — see
+ * DEVELOPMENT_ROADMAP.md's note under Sprint 6.
  *
  * Timing note: `dns` is a genuine extra lookup done up front (accurate but
  * means the connection undici itself makes re-resolves the name — fine for a

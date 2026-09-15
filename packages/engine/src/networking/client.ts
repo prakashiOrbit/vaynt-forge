@@ -92,10 +92,12 @@ const SAMPLE_REDIRECT: Omit<ResponseModel, 'requestId' | 'timing'> = {
  * Sprint 0 mock client, extended in Sprint 6 with real variable/auth
  * resolution (via {@link resolveRequest}), a redirect-chain demo, and honest
  * error responses for unparseable URLs. Still fabricates the actual HTTP
- * response — see {@link UndiciRequestClient} for the real network client,
- * and DEVELOPMENT_ROADMAP.md's "Out of Scope" note for why the Send button
- * uses this one instead: demo requests target `api.acme.dev`, which doesn't
- * resolve, so a real client would just fail every demo request with ENOTFOUND.
+ * response — see {@link UndiciRequestClient} for the real network client.
+ *
+ * As of the post-Sprint-13 networking change, the renderer's Send button
+ * calls `UndiciRequestClient` (over `network:execute` IPC), not this class —
+ * nothing in the app UI instantiates `MockRequestClient` anymore. It's kept
+ * around (engine tests still exercise it) rather than deleted outright.
  */
 export class MockRequestClient implements RequestClient {
   async execute(request: RequestModel, ctx: ExecutionContext): Promise<ResponseModel> {
