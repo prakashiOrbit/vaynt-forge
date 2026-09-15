@@ -82,6 +82,15 @@ const defaultGql = (): GraphQLTabState => ({
 })
 const defaultGrpc = (): GrpcTabState => ({ kind: 'grpc', address: '', frames: [], connected: false, bidiOpen: false })
 
+// Stable singletons for the "no tab entry yet" case. `useRealtime((s) => s.getWs(tabId))`
+// is a zustand selector backed by `useSyncExternalStore` — if the fallback returned a
+// fresh object on every call, React would see a new snapshot on every render and throw
+// "Maximum update depth exceeded" the instant a brand-new tab first renders.
+const EMPTY_WS = defaultWs()
+const EMPTY_SSE = defaultSse()
+const EMPTY_GQL = defaultGql()
+const EMPTY_GRPC = defaultGrpc()
+
 const nowText = () => new Date().toLocaleTimeString()
 
 interface RealtimeState {
@@ -150,19 +159,19 @@ export const useRealtime = create<RealtimeState>()((set, get) => ({
 
   getWs: (tabId) => {
     const e = get().entries[tabId]
-    return e && e.kind === 'ws' ? e : defaultWs()
+    return e && e.kind === 'ws' ? e : EMPTY_WS
   },
   getSse: (tabId) => {
     const e = get().entries[tabId]
-    return e && e.kind === 'sse' ? e : defaultSse()
+    return e && e.kind === 'sse' ? e : EMPTY_SSE
   },
   getGql: (tabId) => {
     const e = get().entries[tabId]
-    return e && e.kind === 'graphql' ? e : defaultGql()
+    return e && e.kind === 'graphql' ? e : EMPTY_GQL
   },
   getGrpc: (tabId) => {
     const e = get().entries[tabId]
-    return e && e.kind === 'grpc' ? e : defaultGrpc()
+    return e && e.kind === 'grpc' ? e : EMPTY_GRPC
   },
 
   connectWs: (tabId, url) => {
@@ -225,12 +234,18 @@ export const useRealtime = create<RealtimeState>()((set, get) => ({
 
   pauseSse: (tabId) => {
     const e = get().entries[tabId]
-    if (e?.kind === 'sse') e.session?.pause()
+    if (e?.kind === 'sse') {
+      e.session?.pause()
+      get().setSse(tabId, { paused: true })
+    }
   },
 
   resumeSse: (tabId) => {
     const e = get().entries[tabId]
-    if (e?.kind === 'sse') e.session?.resume()
+    if (e?.kind === 'sse') {
+      e.session?.resume()
+      get().setSse(tabId, { paused: false })
+    }
   },
 
   closeSse: (tabId) => {
@@ -240,7 +255,10 @@ export const useRealtime = create<RealtimeState>()((set, get) => ({
 
   reconnectSse: (tabId) => {
     const e = get().entries[tabId]
-    if (e?.kind === 'sse') e.session?.reconnect()
+    if (e?.kind === 'sse') {
+      e.session?.reconnect()
+      get().setSse(tabId, { paused: false })
+    }
   },
 
   clearSse: (tabId) => get().setSse(tabId, { events: [], logs: [] }),

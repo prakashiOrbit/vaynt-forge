@@ -58,6 +58,7 @@ export function createMockSse(url: string, handlers: SseHandlers): MockSseSessio
 
   const connect = () => {
     running = true
+    paused = false
     setStatus('connecting', `[sse] connecting ${url}`)
     schedule(() => {
       if (!running) return

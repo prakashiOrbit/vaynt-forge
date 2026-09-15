@@ -146,10 +146,12 @@ type ServerStreamFn = (m: unknown, md: grpc.Metadata) => grpc.ClientReadableStre
 type ClientStreamFn = (cb: (err: grpc.ServiceError | null, res?: unknown) => void) => grpc.ClientWritableStream<unknown>
 type DuplexFn = () => grpc.ClientDuplexStream<unknown, unknown>
 
-const resolveMethod = <T>(c: grpc.Client, method: string): T => {
+const resolveMethod = <T extends (...args: never[]) => unknown>(c: grpc.Client, method: string): T => {
   const fn = (c as unknown as Record<string, T | undefined>)[method]
   if (!fn) throw new Error(`Unknown gRPC method "${method}"`)
-  return fn
+  // grpc-js's generated client methods read `this` (e.g. this.makeUnaryRequest) —
+  // extracting the function by name detaches it, so it must be rebound to `c`.
+  return fn.bind(c) as T
 }
 
 /** Dispatches on `method` by name instead of hardcoding an RPC, so every
