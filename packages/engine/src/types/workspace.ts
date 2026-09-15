@@ -26,6 +26,7 @@ export interface Folder {
 
 export interface HistoryEntry {
   id: string
+  workspaceId: string
   requestId?: string
   requestName: string
   method: string

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronsUpDown, Layers } from 'lucide-react'
-import { InMemoryStorage } from '@apiforge/engine'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData } from '../stores/data'
 
 export function EnvironmentSelector() {
   const [open, setOpen] = useState(false)
@@ -9,12 +9,17 @@ export function EnvironmentSelector() {
   const activeId = useSession((s) => s.activeEnvironmentId)
   const setActiveEnvironment = useSession((s) => s.setActiveEnvironment)
 
-  const environments = useMemo(() => {
-    const storage = new InMemoryStorage()
-    return storage.listEnvironments(storage.listWorkspaces()[0]?.id ?? '')
-  }, [])
+  const environments = useActiveWorkspaceData().environments
 
   const active = environments.find((e) => e.id === activeId)
+
+  useEffect(() => {
+    if (environments.length > 0 && !environments.some((e) => e.id === activeId)) {
+      setActiveEnvironment(environments[0]!.id)
+    } else if (environments.length === 0 && activeId !== '') {
+      setActiveEnvironment('')
+    }
+  }, [environments, activeId, setActiveEnvironment])
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -46,6 +51,9 @@ export function EnvironmentSelector() {
           role="listbox"
           className="absolute right-0 top-full z-50 mt-1 w-56 rounded-md border border-border bg-overlay py-1 shadow-xl"
         >
+          {environments.length === 0 && (
+            <div className="px-3 py-2 text-[12px] text-faint">No environments in this workspace</div>
+          )}
           {environments.map((env) => (
             <button
               key={env.id}

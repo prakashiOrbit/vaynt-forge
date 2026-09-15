@@ -8,6 +8,8 @@ export interface Variable {
   scope: VariableScope
   /** Secrets mask everywhere and are encrypted at rest. */
   secret: boolean
+  /** Set for global-scoped variables (inline environment variables omit it). */
+  workspaceId?: string
 }
 
 export type EnvironmentPhase = 'Development' | 'Test' | 'Staging' | 'Production'

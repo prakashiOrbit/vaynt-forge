@@ -2,6 +2,9 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { IPC } from '../shared/ipc'
 import { registerIpcHandlers } from './ipc'
+import { StorageService } from './storageService'
+
+let storageService: StorageService | null = null
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -37,7 +40,10 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers()
+  const dbPath = join(app.getPath('userData'), 'apiforge.db')
+  storageService = new StorageService(dbPath)
+  registerIpcHandlers(storageService)
+  console.log(`[storage] sqlite @ ${dbPath}`)
 
   app.on('web-contents-created', (_e, contents) => {
     contents.on('will-navigate', (event, url) => {
@@ -51,6 +57,10 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+})
+
+app.on('before-quit', () => {
+  storageService?.close()
 })
 
 app.on('window-all-closed', () => {

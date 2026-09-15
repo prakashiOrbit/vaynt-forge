@@ -1,25 +1,39 @@
 import { useState } from 'react'
 import { Bell, CheckCheck, Trash2, X } from 'lucide-react'
 import { Button } from '@apiforge/ui'
-import { useNotifications, type NotificationTone } from '../stores/notifications'
+import type { NotificationTone } from '@apiforge/engine'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData, useData } from '../stores/data'
 
 const TONE_DOT: Record<NotificationTone, string> = {
   info: 'bg-[var(--af-info)]',
   success: 'bg-[var(--af-ok)]',
+  warning: 'bg-[var(--af-warn)]',
   error: 'bg-[var(--af-err)]',
-  warn: 'bg-[var(--af-warn)]',
+}
+
+function formatRelative(ts: number): string {
+  const seconds = Math.max(1, Math.floor((Date.now() - ts) / 1000))
+  if (seconds < 60) return `${seconds}s ago`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false)
-  const items = useNotifications((s) => s.items)
-  const markAllRead = useNotifications((s) => s.markAllRead)
-  const dismiss = useNotifications((s) => s.dismiss)
-  const clear = useNotifications((s) => s.clear)
   const setActiveNav = useSession((s) => s.setActiveNav)
 
-  const unread = items.filter((n) => !n.read).length
+  const notifications = useActiveWorkspaceData().notifications
+  const markAllNotificationsRead = useData((s) => s.markAllNotificationsRead)
+  const dismissNotification = useData((s) => s.dismissNotification)
+  const clearNotifications = useData((s) => s.clearNotifications)
+  const workspaceId = useSession((s) => s.activeWorkspaceId)
+
+  const unread = notifications.filter((n) => !n.read).length
 
   return (
     <div className="relative">
@@ -47,14 +61,14 @@ export function NotificationCenter() {
               </span>
               <div className="flex items-center gap-1">
                 <button
-                  onClick={markAllRead}
+                  onClick={() => void markAllNotificationsRead(workspaceId)}
                   aria-label="Mark all as read"
                   className="rounded p-1 text-faint transition-colors hover:text-text"
                 >
                   <CheckCheck className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={clear}
+                  onClick={() => void clearNotifications(workspaceId)}
                   aria-label="Clear all notifications"
                   className="rounded p-1 text-faint transition-colors hover:text-err"
                 >
@@ -64,12 +78,12 @@ export function NotificationCenter() {
             </div>
 
             <div className="max-h-80 overflow-y-auto py-1">
-              {items.length === 0 && (
+              {notifications.length === 0 && (
                 <div className="px-3 py-6 text-center text-[12px] text-faint">
                   You're all caught up
                 </div>
               )}
-              {items.map((n) => (
+              {notifications.map((n) => (
                 <div
                   key={n.id}
                   className={`group flex items-start gap-2.5 border-b border-border px-3 py-2.5 last:border-b-0 ${
@@ -82,10 +96,10 @@ export function NotificationCenter() {
                     {n.message && (
                       <div className="mt-0.5 text-[11px] leading-relaxed text-muted">{n.message}</div>
                     )}
-                    <div className="mt-0.5 text-[10px] text-faint">{n.time} ago</div>
+                    <div className="mt-0.5 text-[10px] text-faint">{formatRelative(n.createdAt)}</div>
                   </div>
                   <button
-                    onClick={() => dismiss(n.id)}
+                    onClick={() => void dismissNotification(n.id)}
                     aria-label="Dismiss notification"
                     className="shrink-0 rounded p-0.5 text-faint opacity-0 transition-opacity hover:text-text group-hover:opacity-100"
                   >
@@ -96,7 +110,7 @@ export function NotificationCenter() {
             </div>
 
             <div className="flex items-center justify-between border-t border-border px-3 py-2">
-              <span className="text-[10px] text-faint">{items.length} total</span>
+              <span className="text-[10px] text-faint">{notifications.length} total</span>
               <Button
                 size="sm"
                 variant="ghost"

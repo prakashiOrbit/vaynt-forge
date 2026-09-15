@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CornerDownLeft, FolderOpen, History, Layers, Plus, Search, Send } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { InMemoryStorage } from '@apiforge/engine'
 import type { HttpMethod } from '@apiforge/engine'
 import { NAV_ITEMS } from '../navigation'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData } from '../stores/data'
 import { useKeyboardShortcut } from '../lib/shortcuts'
 
 interface PaletteItem {
@@ -24,6 +24,8 @@ export function CommandPalette() {
   const setActiveEnvironment = useSession((s) => s.setActiveEnvironment)
   const openNewRequest = useSession((s) => s.openNewRequest)
   const openTab = useSession((s) => s.openTab)
+
+  const { requests, collections, history, environments } = useActiveWorkspaceData()
 
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
@@ -49,10 +51,12 @@ export function CommandPalette() {
       run: () => openNewRequest(),
     })
 
-    const storage = new InMemoryStorage()
-    const wsId = storage.listWorkspaces()[0]?.id ?? ''
+    const countFor = new Map<string, number>()
+    for (const r of requests) {
+      if (r.collectionId) countFor.set(r.collectionId, (countFor.get(r.collectionId) ?? 0) + 1)
+    }
 
-    for (const r of storage.listRequests(wsId).slice(0, 12)) {
+    for (const r of requests.slice(0, 12)) {
       list.push({
         id: `req:${r.id}`,
         group: 'Requests',
@@ -60,25 +64,23 @@ export function CommandPalette() {
         hint: `${r.method} ${r.url}`,
         keywords: r.method,
         icon: Send,
-        run: () =>
-          openTab({ id: r.id, method: r.method as HttpMethod, name: r.name, url: r.url }),
+        run: () => openTab({ id: r.id, method: r.method, name: r.name, url: r.url }),
       })
     }
 
-    for (const c of storage.listCollections(wsId)) {
-      const count = storage.listRequests(wsId).filter((r) => r.collectionId === c.id).length
+    for (const c of collections) {
       list.push({
         id: `col:${c.id}`,
         group: 'Collections',
         label: c.name,
-        hint: `${count} requests`,
+        hint: `${countFor.get(c.id) ?? 0} requests`,
         keywords: 'collection',
         icon: FolderOpen,
         run: () => setActiveNav('collections'),
       })
     }
 
-    for (const h of storage.listHistory(wsId).slice(0, 8)) {
+    for (const h of history.slice(0, 8)) {
       list.push({
         id: `hist:${h.id}`,
         group: 'History',
@@ -96,7 +98,7 @@ export function CommandPalette() {
       })
     }
 
-    for (const env of storage.listEnvironments(wsId)) {
+    for (const env of environments) {
       list.push({
         id: `env:${env.id}`,
         group: 'Switch Environment',
@@ -108,7 +110,16 @@ export function CommandPalette() {
       })
     }
     return list
-  }, [setActiveNav, setActiveEnvironment, openNewRequest, openTab])
+  }, [
+    setActiveNav,
+    setActiveEnvironment,
+    openNewRequest,
+    openTab,
+    requests,
+    collections,
+    history,
+    environments,
+  ])
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase()

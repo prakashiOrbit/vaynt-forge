@@ -1,7 +1,10 @@
-import type { Workspace, Collection } from '../types/workspace'
+import type { Workspace } from '../types/workspace'
 import type { RequestModel } from '../types/request'
-import type { Environment } from '../types/variables'
+import type { Variable, Environment } from '../types/variables'
 import type { MockServer } from '../types/mock'
+import type { StorageProvider, CollectionDraft, HistoryInput, NotificationDraft } from './provider'
+import type { AppNotification } from '../types/notifications'
+import { DEFAULT_APP_SETTINGS } from '../types/settings'
 
 export const DEMO_WORKSPACE: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'> = {
   name: 'Acme API',
@@ -9,7 +12,7 @@ export const DEMO_WORKSPACE: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'> =
   isDemo: true,
 }
 
-export const DEMO_COLLECTIONS: Omit<Collection, 'id' | 'createdAt' | 'updatedAt'>[] = [
+export const DEMO_COLLECTIONS: CollectionDraft[] = [
   { name: 'Authentication', workspaceId: '' },
   { name: 'Users', workspaceId: '' },
   { name: 'Orders', workspaceId: '' },
@@ -125,6 +128,11 @@ export const DEMO_ENVIRONMENTS: Omit<Environment, 'workspaceId'>[] = [
   },
 ]
 
+export const DEMO_GLOBAL_VARIABLES: Omit<Variable, 'workspaceId'>[] = [
+  { id: 'v_global1', key: 'org_id', initialValue: 'acme-org-001', currentValue: 'acme-org-001', scope: 'global', secret: false },
+  { id: 'v_global2', key: 'replica', initialValue: 'us-east-1', currentValue: 'us-east-1', scope: 'global', secret: false },
+]
+
 export const DEMO_MOCK: MockServer = {
   id: 'mock_users',
   name: 'User API Mock',
@@ -141,3 +149,81 @@ export const DEMO_MOCK: MockServer = {
   createdAt: Date.now(),
   updatedAt: Date.now(),
 }
+
+export const DEMO_NOTIFICATIONS: NotificationDraft[] = [
+  {
+    workspaceId: '',
+    tone: 'success',
+    title: 'Mock server started',
+    message: 'Acme API › CRUD on port 4010',
+    read: false,
+    dismissed: false,
+  },
+  {
+    workspaceId: '',
+    tone: 'warning',
+    title: 'Environment switched to Production',
+    message: 'Requests will run against the live API.',
+    read: false,
+    dismissed: false,
+  },
+  {
+    workspaceId: '',
+    tone: 'info',
+    title: 'Collection synced',
+    message: 'Users Collection · 12 requests',
+    read: true,
+    dismissed: false,
+  },
+]
+
+const SEED_HISTORY: Omit<HistoryInput, 'workspaceId' | 'timestamp'>[] = [
+  { requestId: 'req_get_users', requestName: 'Get User', method: 'GET', url: 'https://api.acme.dev/v1/users?page=1&limit=20', status: 200, statusText: 'OK', durationMs: 124, size: 224, environmentId: 'env_dev' },
+  { requestId: 'req_login', requestName: 'Login', method: 'POST', url: 'https://api.acme.dev/v1/auth/login', status: 200, statusText: 'OK', durationMs: 238, size: 512, environmentId: 'env_dev' },
+  { requestId: 'req_get_user', requestName: 'Get User Detail', method: 'GET', url: 'https://api.acme.dev/v1/users/usr_1024', status: 200, statusText: 'OK', durationMs: 81, size: 180, environmentId: 'env_dev' },
+  { requestId: 'req_create_order', requestName: 'Create Order', method: 'POST', url: 'https://api.acme.dev/v1/orders', status: 500, statusText: 'Internal Server Error', durationMs: 923, size: 92, environmentId: 'env_dev' },
+  { requestId: 'req_get_order', requestName: 'Get Order', method: 'GET', url: 'https://api.acme.dev/v1/orders/ord_901', status: 200, statusText: 'OK', durationMs: 156, size: 340, environmentId: 'env_dev' },
+]
+
+/**
+ * Populates an empty provider with the "Acme API" demo workspace. Used by both
+ * `InMemoryStorage` (default) and `SQLiteStorage` on first launch so the two
+ * implementations stay behaviour-identical.
+ */
+export function seedProvider(provider: StorageProvider): Workspace {
+  const ws = provider.createWorkspace(DEMO_WORKSPACE)
+
+  const collectionIdByName = new Map<string, string>()
+  for (const col of DEMO_COLLECTIONS) {
+    const created = provider.createCollection({ ...col, workspaceId: ws.id })
+    collectionIdByName.set(created.name, created.id)
+  }
+
+  for (const req of DEMO_REQUESTS) {
+    const { collectionName, ...request } = req
+    provider.saveRequest({ ...request, workspaceId: ws.id, collectionId: collectionIdByName.get(collectionName) })
+  }
+
+  for (const env of DEMO_ENVIRONMENTS) {
+    provider.saveEnvironment({ ...env, workspaceId: ws.id })
+  }
+  for (const v of DEMO_GLOBAL_VARIABLES) {
+    provider.saveGlobalVariable({ ...v, workspaceId: ws.id, scope: 'global' })
+  }
+  provider.saveMockServer({ ...DEMO_MOCK, workspaceId: ws.id })
+
+  const now = Date.now()
+  SEED_HISTORY.forEach((h, i) => {
+    provider.addHistory({ ...h, workspaceId: ws.id, timestamp: now - (i + 1) * 4 * 60_000 })
+  })
+  for (const n of DEMO_NOTIFICATIONS) {
+    provider.addNotification({ ...n, workspaceId: ws.id })
+  }
+
+  provider.saveSettings(ws.id, DEFAULT_APP_SETTINGS)
+
+  return ws
+}
+
+export type { AppNotification }
+export type { Workspace }

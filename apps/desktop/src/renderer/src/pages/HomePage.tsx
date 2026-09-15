@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   Activity,
   ArrowRight,
@@ -12,9 +11,9 @@ import {
   SlidersHorizontal,
   XCircle,
 } from 'lucide-react'
-import { InMemoryStorage } from '@apiforge/engine'
 import { Button, MethodBadge, StatusCode } from '@apiforge/ui'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData, useData } from '../stores/data'
 
 const QUICK_ACTIONS = [
   { label: 'New Request', icon: Plus },
@@ -30,24 +29,14 @@ function formatDuration(ms: number): string {
 }
 
 export function HomePage() {
-  const data = useMemo(() => {
-    const storage = new InMemoryStorage()
-    const ws = storage.listWorkspaces()[0]
-    const wsId = ws?.id ?? ''
-    return { storage, wsId }
-  }, [])
+  const { history, requests, environments, collections, mockServers } = useActiveWorkspaceData()
 
-  const { storage, wsId } = data
-  const history = storage.listHistory(wsId)
-  const requests = storage.listRequests(wsId)
-  const environments = storage.listEnvironments(wsId)
-  const mockServers = storage.listMockServers(wsId)
   const setActiveNav = useSession((s) => s.setActiveNav)
   const openNewRequest = useSession((s) => s.openNewRequest)
   const openTab = useSession((s) => s.openTab)
   const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
   const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
-  const workspaces = useSession((s) => s.workspaces)
+  const workspaces = useData((s) => s.workspaces)
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId)
   const activeEnvName =
@@ -64,8 +53,8 @@ export function HomePage() {
         <div>
           <h1 className="text-lg font-semibold text-text">Welcome back</h1>
           <p className="mt-1 text-[13px] text-muted">
-            {activeWorkspace?.name ?? 'Acme API'} · {activeEnvName} · 3 collections ·{' '}
-            {requests.length} requests
+            {activeWorkspace?.name ?? 'Acme API'} · {activeEnvName} · {collections.length}{' '}
+            collections · {requests.length} requests
           </p>
         </div>
         <Button size="md" onClick={openNewRequest}>
@@ -141,9 +130,7 @@ export function HomePage() {
               {requests.slice(0, 4).map((r) => (
                 <button
                   key={r.id}
-                  onClick={() =>
-                    openTab({ id: r.id, method: r.method, name: r.name, url: r.url })
-                  }
+                  onClick={() => openTab({ id: r.id, method: r.method, name: r.name, url: r.url })}
                   className="group flex w-full items-center gap-3 rounded-md border border-border bg-raised px-3 py-2 text-left transition-colors hover:bg-bg-hover"
                 >
                   <MethodBadge method={r.method} />

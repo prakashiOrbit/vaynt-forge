@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Clipboard, Copy, FolderOpen, Plus, RefreshCw, Search, Send } from 'lucide-react'
-import { InMemoryStorage } from '@apiforge/engine'
 import type { HttpMethod } from '@apiforge/engine'
 import {
   Button,
@@ -14,6 +13,7 @@ import {
   type DataColumn,
 } from '@apiforge/ui'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData, useData } from '../stores/data'
 
 interface RequestRow {
   id: string
@@ -26,46 +26,41 @@ interface RequestRow {
 export function RequestsPage() {
   const openTab = useSession((s) => s.openTab)
   const openNewRequest = useSession((s) => s.openNewRequest)
+  const workspaceId = useSession((s) => s.activeWorkspaceId)
   const { openContextMenu } = useContextMenu()
 
   const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<RequestRow | null>(null)
 
-  const requests = useMemo(() => {
-    const storage = new InMemoryStorage()
-    const wsId = storage.listWorkspaces()[0]?.id ?? ''
-    const cols = storage.listCollections(wsId)
-    const nameOf = (id?: string) => cols.find((c) => c.id === id)?.name
-    return storage.listRequests(wsId).map((r) => ({
+  const { requests, collections } = useActiveWorkspaceData()
+
+  const rows = useMemo(() => {
+    const nameOf = new Map(collections.map((c) => [c.id, c.name]))
+    return requests.map((r) => ({
       id: r.id,
       name: r.name,
       method: r.method,
       url: r.url,
-      collectionName: nameOf(r.collectionId),
+      collectionName: r.collectionId ? nameOf.get(r.collectionId) : undefined,
     }))
-  }, [])
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 350)
-    return () => window.clearTimeout(t)
-  }, [])
+  }, [requests, collections])
 
   const refresh = () => {
     setLoading(true)
-    window.setTimeout(() => setLoading(false), 300)
+    void useData.getState().refresh(workspaceId).finally(() => setLoading(false))
   }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return requests
-    return requests.filter(
+    if (!q) return rows
+    return rows.filter(
       (r) =>
         r.name.toLowerCase().includes(q) ||
         r.url.toLowerCase().includes(q) ||
         r.method.toLowerCase().includes(q)
     )
-  }, [requests, query])
+  }, [rows, query])
 
   const open = (r: RequestRow) =>
     openTab({ id: r.id, method: r.method as HttpMethod, name: r.name, url: r.url })

@@ -12,6 +12,7 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -24,7 +25,8 @@
     "prettier": "^3.6.2",
     "turbo": "^2.10.13",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "tsx": "^4.19.0"
   },
   "packageManager": "npm@11.19.0",
   "engines": {

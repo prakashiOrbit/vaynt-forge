@@ -133,20 +133,20 @@ shell — not the product.
 **Goal:** Data layer that the whole product hangs on.
 
 ### Tasks
-- [ ] SQLite schema: `workspaces`, `collections`, `folders`, `requests`, `environments`, `variables`, `history`, `testRuns`, `mockServers`, `mockEndpoints`, `assertions`, `settings`, `notifications`
-- [ ] Engine module: workspace/collection/request CRUD (pure TS, no Electron imports)
-- [ ] Zustand store wiring: `activeWorkspace`, `activeRequest`, `activeEnvironment`, `collections`, `requests`, `history`, `mockServers`, `testRuns`, `notifications`, `variables`, `settings`
-- [ ] Zustand `persist` for UI prefs; SQLite as source of truth via IPC
-- [ ] `safeStorage` integration — secrets (API keys, tokens, client secrets) never in plaintext
-- [ ] Environment variable resolution engine (scopes: global → environment → collection) + generated vars (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`)
-- [ ] Import/export serialisers (collection JSON, environment JSON) ready for later sprints
-- [ ] Seed function: Demo Workspace "Acme API" (collections, environments, requests, sample history)
+- [x] SQLite schema: `workspaces`, `collections`, `folders`, `requests`, `environments`, `variables`, `history`, `test_runs`, `mock_servers`, `settings`, `notifications` — *complex payloads (mock endpoints/log, request assertions, env variables) embedded as JSON in parent rows* (packages/sqlite)
+- [x] Engine module: workspace/collection/request CRUD (pure TS, no Electron imports) — `StorageProvider` contract + `InMemoryStorage` (packages/engine)
+- [x] Zustand store wiring: `activeWorkspace`, `activeRequest`, `activeEnvironment`, `collections`, `requests`, `history`, `mockServers`, `testRuns`, `notifications`, `variables`, `settings` — workspace-bucket `useData` store + hooks (renderer)
+- [x] Zustand `persist` for UI prefs; SQLite as source of truth via IPC — session store persists UI prefs; typed `storage:call` IPC (main service + preload bridge)
+- [x] `safeStorage` integration — secrets (API keys, tokens, client secrets) never in plaintext — `SecretCodec` + `withSecretCodec` decorator; seeding runs through the codec; verified ciphertext in DB dump (VPN-ready: `secretsSupported` flag when codec unavailable)
+- [x] Environment variable resolution engine (scopes: global → environment → collection) + generated vars (`{{$guid}}`, `{{$timestamp}}`, `{{$randomInt}}`) — resolver already shipped with the engine; scoped precedence + generated vars confirmed
+- [x] Import/export serialisers (collection JSON, environment JSON) ready for later sprints — `CollectionFileV1` / `EnvironmentFileV1` (io/serializers)
+- [x] Seed function: Demo Workspace "Acme API" (collections, environments, requests, sample history) — `seedProvider` + demo consts; first-launch seeding in the desktop service
 
 ### Acceptance criteria
-- [ ] Create/edit/delete workspace, collection, request, environment persists across app restart
-- [ ] Secrets encrypted at rest (verify: DB dump shows no plaintext secret)
-- [ ] `{{variable}}` resolves correctly at global/env/collection scope
-- [ ] Demo workspace seeds correctly on first launch
+- [x] Create/edit/delete workspace, collection, request, environment persists across app restart — sqlite close+reopen tests + 2× Electron boot smoke
+- [x] Secrets encrypted at rest (verify: DB dump shows no plaintext secret) — `strings` scan of the real DB is clean; values are safeStorage base64 blobs
+- [x] `{{variable}}` resolves correctly at global/env/collection scope — engine variable resolver tests
+- [x] Demo workspace seeds correctly on first launch — `1 ws / 4 collections / 13 requests / 4 envs / 1 mock / 5 history`; no re-seed on second boot
 
 ---
 
@@ -432,6 +432,7 @@ shell — not the product.
 | Sprint 0 — Foundations | ✅ Built | Monorepo, Electron+react shell, engine/ui/config packages, typecheck+build green, app boots |
 | Sprint 1 — Application Shell & Navigation | ✅ Built | Onboarding, workspace switcher (CRUD), Cmd+K command palette, resizable sidebar, keyboard-shortcut foundation, live tab/home actions |
 | Sprint 2 — Design System & Shared UI Primitives | ✅ Built | Dark/Light/System themes + Barlow/JetBrains Mono type; DataTable, Empty/Error/Loading states, ConfirmDialog, Toasts + NotificationCenter, ContextMenu, Modal/Drawer, Tooltips, full palette sections; real Requests & History screens; micro-interaction animations |
+| Sprint 3 — Engine Core | ✅ Built | Engine `StorageProvider` (CRUD + drafts), `InMemoryStorage`, seed + safeStorage `SecretCodec`; `@apiforge/sqlite` node:sqlite provider (11 tables, WAL, cascade delete, history cap); typed `storage:call` IPC + `StorageService`, preload bridge; workspace-bucket Zustand store + DataBootstrapper; session store slimmmed to UI prefs (persist); all screens (Home/Requests/History, switcher, palette, notifications) read live DB state; secrets ciphertext in DB dump verified; `npm run test` (tsx, 12 tests) + boot smoke green |
 | Sprint 1 — App Shell | Not started | |
 | Sprint 2 — Design System | Not started | |
 | Sprint 3 — Engine Core | Not started | |

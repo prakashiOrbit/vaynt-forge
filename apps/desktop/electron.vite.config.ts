@@ -11,16 +11,20 @@ const uiAlias = {
   find: '@apiforge/ui',
   replacement: fileURLToPath(new URL('../../packages/ui/src', import.meta.url)),
 }
+const sqliteAlias = {
+  find: '@apiforge/sqlite',
+  replacement: fileURLToPath(new URL('../../packages/sqlite/src', import.meta.url)),
+}
 
 export default defineConfig({
   main: {
     plugins: [
       externalizeDepsPlugin({
-        exclude: ['@apiforge/engine', '@apiforge/ui'],
+        exclude: ['@apiforge/engine', '@apiforge/ui', '@apiforge/sqlite'],
       }),
     ],
     resolve: {
-      alias: [engineAlias, uiAlias],
+      alias: [engineAlias, uiAlias, sqliteAlias],
     },
     build: {
       rollupOptions: {

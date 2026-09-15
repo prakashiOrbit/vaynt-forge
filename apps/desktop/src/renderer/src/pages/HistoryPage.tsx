@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Clipboard, History, RefreshCw, ScanSearch, Send } from 'lucide-react'
-import { InMemoryStorage } from '@apiforge/engine'
 import type { HttpMethod } from '@apiforge/engine'
 import {
   Button,
@@ -14,6 +13,7 @@ import {
   type DataColumn,
 } from '@apiforge/ui'
 import { useSession } from '../stores/session'
+import { useActiveWorkspaceData, useData } from '../stores/data'
 
 interface HistoryRow {
   id: string
@@ -43,39 +43,33 @@ function formatTime(ts: number): string {
 
 export function HistoryPage() {
   const openTab = useSession((s) => s.openTab)
+  const workspaceId = useSession((s) => s.activeWorkspaceId)
   const { openContextMenu } = useContextMenu()
 
   const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
-  const history = useMemo(() => {
-    const storage = new InMemoryStorage()
-    const wsId = storage.listWorkspaces()[0]?.id ?? ''
-    return storage.listHistory(wsId).map(
-      (h): HistoryRow => ({
-        id: h.id,
-        name: h.requestName,
-        method: h.method,
-        url: h.url,
-        status: h.status,
-        durationMs: h.durationMs,
-        timestamp: h.timestamp,
-      })
-    )
-  }, [])
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 300)
-    return () => window.clearTimeout(t)
-  }, [])
+  const history = useActiveWorkspaceData().history
 
   const refresh = () => {
     setLoading(true)
-    window.setTimeout(() => setLoading(false), 280)
+    void useData.getState().refresh(workspaceId).finally(() => setLoading(false))
   }
 
   const filtered = useMemo(() => {
-    const rows = [...history].sort((a, b) => b.timestamp - a.timestamp)
+    const rows = [...history]
+      .map(
+        (h): HistoryRow => ({
+          id: h.id,
+          name: h.requestName ?? h.method,
+          method: h.method,
+          url: h.url,
+          status: h.status,
+          durationMs: h.durationMs,
+          timestamp: h.timestamp,
+        })
+      )
+      .sort((a, b) => b.timestamp - a.timestamp)
     const q = query.trim().toLowerCase()
     if (!q) return rows
     return rows.filter(

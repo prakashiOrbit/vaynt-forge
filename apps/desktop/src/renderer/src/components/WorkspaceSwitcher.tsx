@@ -11,25 +11,27 @@ import {
   X,
 } from 'lucide-react'
 import { ConfirmDialog, toast } from '@apiforge/ui'
-import { useSession, type AppWorkspace } from '../stores/session'
+import type { Workspace } from '@apiforge/engine'
+import { useSession } from '../stores/session'
+import { useData, useWorkspaceById } from '../stores/data'
 
 export function WorkspaceSwitcher() {
-  const workspaces = useSession((s) => s.workspaces)
+  const workspaces = useData((s) => s.workspaces)
   const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
   const setActiveWorkspace = useSession((s) => s.setActiveWorkspace)
-  const createWorkspace = useSession((s) => s.createWorkspace)
-  const renameWorkspace = useSession((s) => s.renameWorkspace)
-  const duplicateWorkspace = useSession((s) => s.duplicateWorkspace)
-  const deleteWorkspace = useSession((s) => s.deleteWorkspace)
+
+  const createWorkspace = useData((s) => s.createWorkspace)
+  const renameWorkspace = useData((s) => s.renameWorkspace)
+  const deleteWorkspace = useData((s) => s.deleteWorkspace)
 
   const [open, setOpen] = useState(false)
   const [adding, setAdding] = useState(false)
   const [name, setName] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
-  const [deleting, setDeleting] = useState<AppWorkspace | null>(null)
+  const [deleting, setDeleting] = useState<Workspace | null>(null)
 
-  const active = workspaces.find((w) => w.id === activeWorkspaceId)
+  const active = useWorkspaceById(activeWorkspaceId)
 
   useEffect(() => {
     if (!open) {
@@ -51,28 +53,43 @@ export function WorkspaceSwitcher() {
     toast.success('Workspace exported', `${ws.name} was saved as a JSON file.`)
   }
 
-  const submitNew = () => {
+  const submitNew = async () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    createWorkspace(trimmed)
-    toast.success('Workspace created', trimmed)
+    try {
+      const ws = await createWorkspace({ name: trimmed })
+      setActiveWorkspace(ws.id)
+      toast.success('Workspace created', trimmed)
+    } catch {
+      toast.error('Workspace creation failed')
+    }
     setName('')
     setAdding(false)
     setOpen(false)
   }
 
-  const submitRename = () => {
+  const submitRename = async () => {
     if (renamingId && renameValue.trim()) {
-      renameWorkspace(renamingId, renameValue.trim())
+      await renameWorkspace(renamingId, renameValue.trim())
       toast.success('Workspace renamed')
     }
     setRenamingId(null)
   }
 
-  const confirmDelete = () => {
+  const selectWorkspace = (id: string) => {
+    setActiveWorkspace(id)
+    setOpen(false)
+  }
+
+  const confirmDelete = async () => {
     if (deleting) {
-      deleteWorkspace(deleting.id)
+      const wasActive = deleting.id === activeWorkspaceId
+      await deleteWorkspace(deleting.id)
       toast.success('Workspace deleted', deleting.name)
+      if (wasActive) {
+        const next = workspaces.find((w) => w.id !== deleting.id)
+        if (next) selectWorkspace(next.id)
+      }
     }
     setDeleting(null)
   }
@@ -112,7 +129,7 @@ export function WorkspaceSwitcher() {
                           value={renameValue}
                           onChange={(e) => setRenameValue(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter') submitRename()
+                            if (e.key === 'Enter') void submitRename()
                             if (e.key === 'Escape') setRenamingId(null)
                           }}
                           autoFocus
@@ -120,7 +137,7 @@ export function WorkspaceSwitcher() {
                         />
                         <span className="flex items-center gap-0.5 text-faint">
                           <button
-                            onClick={submitRename}
+                            onClick={() => void submitRename()}
                             aria-label="Confirm rename"
                             className="rounded p-0.5 hover:text-ok"
                           >
@@ -138,10 +155,7 @@ export function WorkspaceSwitcher() {
                     ) : (
                       <>
                         <button
-                          onClick={() => {
-                            setActiveWorkspace(ws.id)
-                            setOpen(false)
-                          }}
+                          onClick={() => selectWorkspace(ws.id)}
                           className="flex min-w-0 flex-1 items-center gap-2 text-left"
                         >
                           <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-accent' : 'text-faint'}`} />
@@ -166,8 +180,13 @@ export function WorkspaceSwitcher() {
                           </button>
                           <button
                             onClick={() => {
-                              duplicateWorkspace(ws.id)
-                              toast.success('Workspace duplicated', `${ws.name} Copy`)
+                              void createWorkspace({ name: `${ws.name} Copy`, description: ws.description }).then(
+                                (copy) => {
+                                  toast.success('Workspace duplicated', `${ws.name} Copy`)
+                                  selectWorkspace(copy.id)
+                                  return undefined
+                                }
+                              )
                             }}
                             aria-label={`Duplicate ${ws.name}`}
                             className="rounded p-0.5 hover:text-text"
@@ -204,7 +223,7 @@ export function WorkspaceSwitcher() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitNew()
+                      if (e.key === 'Enter') void submitNew()
                       if (e.key === 'Escape') setAdding(false)
                     }}
                     autoFocus
@@ -212,7 +231,7 @@ export function WorkspaceSwitcher() {
                     className="h-7 min-w-0 flex-1 rounded-md border border-accent bg-bg-input px-2 text-[12px] text-text outline-none placeholder:text-faint"
                   />
                   <button
-                    onClick={submitNew}
+                    onClick={() => void submitNew()}
                     aria-label="Create workspace"
                     className="rounded p-1 text-faint hover:text-ok"
                   >
@@ -244,7 +263,7 @@ export function WorkspaceSwitcher() {
           </>
         }
         confirmLabel="Delete workspace"
-        onConfirm={confirmDelete}
+        onConfirm={() => void confirmDelete()}
         onCancel={() => setDeleting(null)}
       />
     </div>

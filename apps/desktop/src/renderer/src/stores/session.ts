@@ -10,12 +10,6 @@ export interface WorkspaceTab {
   dirty?: boolean
 }
 
-export interface AppWorkspace {
-  id: string
-  name: string
-  isDemo?: boolean
-}
-
 export function newRequestTab(seed?: Partial<Omit<WorkspaceTab, 'method'>>): WorkspaceTab {
   const id = seed?.id ?? `req_${crypto.randomUUID().slice(0, 8)}`
   return { id, method: 'GET', name: 'New Request', url: 'https://api.acme.dev/v1/users', ...seed }
@@ -32,7 +26,6 @@ interface SessionState {
   theme: 'dark' | 'light' | 'system'
   onboardingComplete: boolean
   paletteOpen: boolean
-  workspaces: AppWorkspace[]
 
   setActiveNav(nav: string): void
   setActiveWorkspace(id: string): void
@@ -45,10 +38,6 @@ interface SessionState {
   setTheme(theme: 'dark' | 'light' | 'system'): void
   completeOnboarding(): void
   setPaletteOpen(open: boolean): void
-  createWorkspace(name: string): string
-  renameWorkspace(id: string, name: string): void
-  duplicateWorkspace(id: string): void
-  deleteWorkspace(id: string): void
   openNewRequest(): void
 }
 
@@ -57,19 +46,12 @@ const SAMPLE_TABS: WorkspaceTab[] = [
   { id: 't2', method: 'POST', name: 'Login', url: 'https://api.acme.dev/v1/auth/login', dirty: true },
 ]
 
-const DEFAULT_WORKSPACES: AppWorkspace[] = [
-  { id: 'ws_acme', name: 'Acme API', isDemo: true },
-  { id: 'ws_my', name: 'My Workspace' },
-  { id: 'ws_itouch', name: 'iTouch' },
-  { id: 'ws_arc', name: 'Project ARC' },
-]
-
 export const useSession = create<SessionState>()(
   persist(
     (set) => ({
       activeNav: 'home',
-      activeWorkspaceId: 'ws_acme',
-      activeEnvironmentId: 'env_dev',
+      activeWorkspaceId: '',
+      activeEnvironmentId: '',
       tabs: SAMPLE_TABS,
       activeTabId: 't1',
       sidebarCollapsed: false,
@@ -77,7 +59,6 @@ export const useSession = create<SessionState>()(
       theme: 'dark',
       onboardingComplete: false,
       paletteOpen: false,
-      workspaces: DEFAULT_WORKSPACES,
 
       setActiveNav: (nav) => set({ activeNav: nav }),
       setActiveWorkspace: (id) => set({ activeWorkspaceId: id }),
@@ -101,34 +82,6 @@ export const useSession = create<SessionState>()(
       setTheme: (theme) => set({ theme }),
       completeOnboarding: () => set({ onboardingComplete: true, paletteOpen: false }),
       setPaletteOpen: (open) => set({ paletteOpen: open }),
-      createWorkspace: (name) => {
-        const id = `ws_${crypto.randomUUID().slice(0, 8)}`
-        set((s) => ({ workspaces: [...s.workspaces, { id, name }], activeWorkspaceId: id }))
-        return id
-      },
-      renameWorkspace: (id, name) =>
-        set((s) => ({
-          workspaces: s.workspaces.map((w) => (w.id === id ? { ...w, name } : w)),
-        })),
-      duplicateWorkspace: (id) =>
-        set((s) => {
-          const src = s.workspaces.find((w) => w.id === id)
-          if (!src) return {}
-          return {
-            workspaces: [
-              ...s.workspaces,
-              { ...src, id: `ws_${crypto.randomUUID().slice(0, 8)}`, name: `${src.name} Copy`, isDemo: false },
-            ],
-          }
-        }),
-      deleteWorkspace: (id) =>
-        set((s) => {
-          const workspaces = s.workspaces.filter((w) => w.id !== id)
-          if (workspaces.length === s.workspaces.length || workspaces.length === 0) return {}
-          const activeWorkspaceId =
-            s.activeWorkspaceId === id ? (workspaces[0]?.id ?? 'ws_acme') : s.activeWorkspaceId
-          return { workspaces, activeWorkspaceId }
-        }),
       openNewRequest: () =>
         set((s) => {
           const tab = newRequestTab()
@@ -146,7 +99,6 @@ export const useSession = create<SessionState>()(
         sidebarWidth: s.sidebarWidth,
         theme: s.theme,
         onboardingComplete: s.onboardingComplete,
-        workspaces: s.workspaces,
       }),
     }
   )

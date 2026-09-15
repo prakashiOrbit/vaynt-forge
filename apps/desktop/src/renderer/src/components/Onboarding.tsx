@@ -9,11 +9,11 @@ import {
   X,
 } from 'lucide-react'
 import { useSession } from '../stores/session'
+import { useData } from '../stores/data'
 
 type ImportKind = 'openapi' | 'collection' | null
 
 export function Onboarding() {
-  const createWorkspace = useSession((s) => s.createWorkspace)
   const setActiveWorkspace = useSession((s) => s.setActiveWorkspace)
   const completeOnboarding = useSession((s) => s.completeOnboarding)
 
@@ -23,18 +23,24 @@ export function Onboarding() {
   const [importNote, setImportNote] = useState<ImportKind>(null)
 
   const startDemo = () => {
-    setActiveWorkspace('ws_acme')
+    const demo = useData.getState().workspaces[0]
+    if (demo) setActiveWorkspace(demo.id)
     completeOnboarding()
   }
 
-  const submitCreate = () => {
+  const submitCreate = async () => {
     const trimmed = name.trim()
     if (!trimmed) {
       setError('Give your workspace a name')
       return
     }
-    createWorkspace(trimmed)
-    completeOnboarding()
+    try {
+      const ws = await useData.getState().createWorkspace({ name: trimmed })
+      setActiveWorkspace(ws.id)
+      completeOnboarding()
+    } catch {
+      setError('Could not create the workspace. Try again.')
+    }
   }
 
   const cards = [
