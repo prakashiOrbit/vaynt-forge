@@ -1,4 +1,7 @@
-import type { AuthConfig, AuthType } from '@vayntforge/engine'
+import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import type { AuthConfig, AuthType, OAuth2Config } from '@vayntforge/engine'
+import { Button } from '@vayntforge/ui'
 import { SelectField, TextField } from './fields'
 import type { RequestPanelProps } from './types'
 
@@ -42,7 +45,66 @@ function defaultAuthFor(type: AuthType): AuthConfig {
   }
 }
 
-export function AuthorizationPanel({ draft, update }: RequestPanelProps) {
+function TokenFetchStatus({
+  auth,
+  setAuth,
+  resolveTemplate,
+}: {
+  auth: OAuth2Config
+  setAuth(next: OAuth2Config): void
+  resolveTemplate?: (template: string) => string
+}) {
+  const [fetching, setFetching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null)
+
+  const getToken = async () => {
+    setFetching(true)
+    setError(null)
+    const resolve = resolveTemplate ?? ((s: string) => s)
+    try {
+      const result = await window.vayntforge.network.fetchOAuth2Token({
+        ...auth,
+        tokenUrl: resolve(auth.tokenUrl),
+        clientId: resolve(auth.clientId),
+        clientSecret: resolve(auth.clientSecret),
+        scopes: resolve(auth.scopes),
+      })
+      if (result.error) {
+        setError(result.error)
+        return
+      }
+      setAuth({ ...auth, accessToken: result.accessToken ?? '', tokenExpiresAt: result.expiresAt })
+      setFetchedAt(Date.now())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const expiresLabel = (() => {
+    if (!auth.tokenExpiresAt) return null
+    const remainingMs = auth.tokenExpiresAt - Date.now()
+    if (remainingMs <= 0) return 'Token expired — fetch a new one.'
+    const mins = Math.round(remainingMs / 60000)
+    return mins < 1 ? 'Token expires in under a minute.' : `Token expires in ~${mins} minute${mins === 1 ? '' : 's'}.`
+  })()
+
+  return (
+    <div className="col-span-2 flex items-center gap-3 border-t border-border pt-3">
+      <Button size="sm" variant="outline" onClick={() => void getToken()} disabled={fetching}>
+        {fetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+        {fetching ? 'Requesting token…' : 'Get New Access Token'}
+      </Button>
+      {error && <span className="text-[12px] text-err">{error}</span>}
+      {!error && fetchedAt && <span className="text-[12px] text-ok">Token fetched successfully.</span>}
+      {!error && !fetchedAt && expiresLabel && <span className="text-[12px] text-faint">{expiresLabel}</span>}
+    </div>
+  )
+}
+
+export function AuthorizationPanel({ draft, update, resolveTemplate }: RequestPanelProps) {
   const auth = draft.auth
   const setAuth = (next: AuthConfig) => update((d) => ({ ...d, auth: next }))
 
@@ -129,9 +191,16 @@ export function AuthorizationPanel({ draft, update }: RequestPanelProps) {
           <TextField
             label="Access Token"
             value={auth.accessToken}
-            onChange={(accessToken) => setAuth({ ...auth, accessToken })}
+            onChange={(accessToken) => setAuth({ ...auth, accessToken, tokenExpiresAt: undefined })}
             type="password"
           />
+          {auth.grantType === 'client_credentials' ? (
+            <TokenFetchStatus auth={auth} setAuth={setAuth} resolveTemplate={resolveTemplate} />
+          ) : (
+            <p className="col-span-2 text-[11px] text-faint">
+              Automatic token fetch is only built for Client Credentials — for {auth.grantType === 'authorization_code' ? 'Authorization Code' : 'Password'}, paste a token you obtained elsewhere into Access Token above (or resolve one via a pre-request script).
+            </p>
+          )}
         </div>
       )}
 

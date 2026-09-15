@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ConfirmDialog, EmptyState, Tabs, toast, type TabItem } from '@vayntforge/ui'
 import { FileQuestion } from 'lucide-react'
-import { createDraftRequest, type RequestModel } from '@vayntforge/engine'
+import { createDraftRequest, collectVariables, resolveVariables, type RequestModel } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 import { useRequestDraft, useRequestDrafts } from '../stores/requestDrafts'
@@ -105,6 +105,15 @@ export function RequestBuilderPage() {
       '$randomInt',
     ])
     return [...names]
+  }, [activeEnv, globalVariables, draft?.variables])
+
+  const resolveTemplate = useMemo(() => {
+    const ctx = collectVariables({
+      global: globalVariables.map((v) => ({ key: v.key, value: v.currentValue })),
+      environment: (activeEnv?.variables ?? []).map((v) => ({ key: v.key, value: v.currentValue })),
+      request: (draft?.variables ?? []).map((v) => ({ key: v.key, value: v.value })),
+    })
+    return (template: string) => resolveVariables(template, ctx).value
   }, [activeEnv, globalVariables, draft?.variables])
 
   // Cmd+Enter/Cmd+S must fire from anywhere (including inside the URL/body
@@ -226,7 +235,7 @@ export function RequestBuilderPage() {
     toast.success('Request deleted', draft.name)
   }
 
-  const panelProps: RequestPanelProps = { draft, update, suggestions }
+  const panelProps: RequestPanelProps = { draft, update, suggestions, resolveTemplate }
 
   return (
     <div className="flex h-full">

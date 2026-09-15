@@ -51,6 +51,8 @@ export interface OAuth2Config {
   clientSecret: string
   scopes: string
   accessToken: string
+  /** Ms-epoch expiry of `accessToken`, set after a real client-credentials fetch (from the token response's `expires_in`). Undefined for a manually-pasted token. */
+  tokenExpiresAt?: number
 }
 
 export interface JwtAuthConfig {

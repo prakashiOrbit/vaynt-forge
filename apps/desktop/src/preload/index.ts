@@ -17,6 +17,7 @@ const api: VayntForgeApi = {
   },
   network: {
     execute: (request, scopes) => ipcRenderer.invoke(IPC.NETWORK_EXECUTE, request, scopes),
+    fetchOAuth2Token: (config) => ipcRenderer.invoke(IPC.OAUTH2_FETCH_TOKEN, config),
   },
   scripts: {
     run: (code, context) => ipcRenderer.invoke(IPC.SCRIPTS_RUN, code, context),

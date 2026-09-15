@@ -9,6 +9,7 @@ import {
   type ScriptContext,
 } from '@vayntforge/engine'
 import { UndiciRequestClient } from '@vayntforge/engine/networking/http-client'
+import { fetchClientCredentialsToken } from '@vayntforge/engine/networking/oauth2-client'
 import { IPC } from '../shared/ipc'
 import type { StorageService } from './storageService'
 import type { VariableScopes } from '../shared/types'
@@ -25,7 +26,7 @@ import {
 import { startMockServer, stopMockServer } from './mockServerRuntime'
 import { startLoadTest, cancelLoadTest } from './loadEngine'
 import { checkForUpdates, downloadUpdate, getUpdateStatus, quitAndInstall } from './updater'
-import type { GrpcMetadataArg, MockServer, PerfTestConfig } from '@vayntforge/engine'
+import type { GrpcMetadataArg, MockServer, OAuth2Config, PerfTestConfig } from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
 
@@ -147,6 +148,12 @@ export function registerIpcHandlers(storage: StorageService): void {
     }
 
     return response
+  })
+
+  // Real RFC 6749 client-credentials grant — a genuine POST to the
+  // configured Token URL, not a simulated token. See oauth2-client.ts.
+  ipcMain.handle(IPC.OAUTH2_FETCH_TOKEN, async (_event, config: OAuth2Config) => {
+    return fetchClientCredentialsToken(config)
   })
 
   ipcMain.handle(IPC.SCRIPTS_RUN, async (_event, code: string, context: ScriptContext) => {

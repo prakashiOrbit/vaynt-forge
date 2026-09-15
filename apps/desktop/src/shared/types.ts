@@ -31,7 +31,17 @@ import type {
   PerfTestConfig,
   PerfSample,
   JarCookie,
+  OAuth2Config,
 } from '@vayntforge/engine'
+
+/** Mirrors the engine's `OAuth2TokenResult` (networking/oauth2-client.ts) — redefined here rather than imported, since that module is Node/undici-only and this file is shared with the renderer. */
+export interface OAuth2TokenResult {
+  accessToken?: string
+  tokenType?: string
+  expiresAt?: number
+  scope?: string
+  error?: string
+}
 
 /** Auto-update status, pushed from `main/updater.ts` over `IPC.UPDATE_STATUS`. */
 export type UpdateStatus =
@@ -158,6 +168,8 @@ export interface VayntForgeApi {
      * note under Sprint 6 for when/why this changed from a mocked response).
      */
     execute(request: RequestModel, scopes: VariableScopes): Promise<ResponseModel>
+    /** Real RFC 6749 client-credentials grant — a genuine POST to `config.tokenUrl`. */
+    fetchOAuth2Token(config: OAuth2Config): Promise<OAuth2TokenResult>
   }
   scripts: {
     /** Runs a pre-request/post-response script in a sandboxed `vm` context. */

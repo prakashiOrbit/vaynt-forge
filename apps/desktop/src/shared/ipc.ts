@@ -5,6 +5,8 @@ export const IPC = {
   DIALOG_OPEN_FILE: 'dialog:openFile',
   /** Real undici-based execution — what the renderer's Send button calls. */
   NETWORK_EXECUTE: 'network:execute',
+  /** Real RFC 6749 client-credentials token fetch — a genuine POST to the configured Token URL. */
+  OAUTH2_FETCH_TOKEN: 'network:oauth2:fetchToken',
   SCRIPTS_RUN: 'scripts:run',
   GRPC_START: 'network:grpc:start',
   GRPC_UNARY: 'network:grpc:unary',
