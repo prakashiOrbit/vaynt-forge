@@ -14,7 +14,8 @@ import {
   grpcServerStream,
   grpcUnary,
 } from './grpcServer'
-import type { GrpcMetadataArg } from '@vayntforge/engine'
+import { startMockServer, stopMockServer } from './mockServerRuntime'
+import type { GrpcMetadataArg, MockServer } from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
 
@@ -92,5 +93,18 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   ipcMain.handle(IPC.GRPC_BIDI_END, async (event, channelId: string) => {
     grpcBidiEnd(channelId, (frame) => emitTo(event)(channelId, frame)).catch(() => undefined)
+  })
+
+  // Sprint 10 — the in-app mock server engine (real node:http per MockServer row).
+  ipcMain.handle(IPC.MOCK_START, async (event, server: MockServer) => {
+    await startMockServer(
+      server,
+      (entry) => event.sender.send(IPC.MOCK_LOG, server.id, entry),
+      () => storage.getMockServerSync(server.id) ?? server
+    )
+  })
+
+  ipcMain.handle(IPC.MOCK_STOP, async (_event, id: string) => {
+    await stopMockServer(id)
   })
 }

@@ -151,6 +151,7 @@ export function OpenApiPage() {
     }
     await useData.getState().saveMockServer(server)
     toast.success('Mock server generated', `${server.name} · ${endpoints.length} endpoints on :${server.port}`)
+    setActiveNav('mock-servers')
   }
 
   const sendRequest = (op: OpenApiOperation) => {

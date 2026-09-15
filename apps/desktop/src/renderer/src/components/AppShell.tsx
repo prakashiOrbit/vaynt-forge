@@ -17,6 +17,7 @@ import { WebSocketsPage } from '../pages/WebSocketsPage'
 import { PerformancePage } from '../pages/PerformancePage'
 import { DocumentationPage } from '../pages/DocumentationPage'
 import { OpenApiPage } from '../pages/OpenApiPage'
+import { MockServersPage } from '../pages/MockServersPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 const SCREENS: Record<string, ComponentType> = {
@@ -30,6 +31,7 @@ const SCREENS: Record<string, ComponentType> = {
   performance: PerformancePage,
   openapi: OpenApiPage,
   documentation: DocumentationPage,
+  'mock-servers': MockServersPage,
 }
 
 export function AppShell() {

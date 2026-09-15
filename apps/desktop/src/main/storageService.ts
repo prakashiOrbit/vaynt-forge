@@ -164,6 +164,11 @@ export class StorageService implements StorageChannel {
   async deleteMockServer(id: string): Promise<void> {
     this.provider.deleteMockServer(id)
   }
+  /** Sync lookup for the mock server runtime, which needs the latest endpoint
+   * config on every incoming request without an IPC round trip. */
+  getMockServerSync(id: string): MockServer | undefined {
+    return this.provider.getMockServer(id)
+  }
 
   // ── OpenAPI specs ─────────────────────────────────────────
   async createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec> {

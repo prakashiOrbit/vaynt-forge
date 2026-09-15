@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { IPC } from '../shared/ipc'
 import { registerIpcHandlers } from './ipc'
 import { StorageService } from './storageService'
+import { getRunningServerIds, stopAllMockServers } from './mockServerRuntime'
 
 let storageService: StorageService | null = null
 
@@ -69,8 +70,22 @@ app.whenReady().then(() => {
   })
 })
 
-app.on('before-quit', () => {
-  storageService?.close()
+let quitting = false
+app.on('before-quit', (event) => {
+  if (quitting) return
+  quitting = true
+  event.preventDefault()
+  void (async () => {
+    // The persisted `status: 'running'` flag would otherwise survive quit
+    // and lie to the next launch — the OS socket dies with this process.
+    for (const id of getRunningServerIds()) {
+      const server = storageService?.getMockServerSync(id)
+      if (server) await storageService?.saveMockServer({ ...server, status: 'stopped' })
+    }
+    await stopAllMockServers()
+    storageService?.close()
+    app.quit()
+  })()
 })
 
 app.on('window-all-closed', () => {

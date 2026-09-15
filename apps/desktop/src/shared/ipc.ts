@@ -14,6 +14,9 @@ export const IPC = {
   GRPC_BIDI_SEND: 'network:grpc:bidi:send',
   GRPC_BIDI_END: 'network:grpc:bidi:end',
   GRPC_FRAME: 'network:grpc:frame',
+  MOCK_START: 'mock:start',
+  MOCK_STOP: 'mock:stop',
+  MOCK_LOG: 'mock:log',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

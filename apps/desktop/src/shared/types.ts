@@ -26,6 +26,7 @@ import type {
   GrpcStreamResult,
   GrpcFrame,
   GrpcMetadataArg,
+  MockLogEntry,
 } from '@vayntforge/engine'
 
 /** Plain-object variable scopes — reassembled into a `ResolutionContext` (Maps) main-side. */
@@ -165,5 +166,12 @@ export interface VayntForgeApi {
       /** Subscribe to gRPC frames; returns an unsubscribe function. */
       onFrame(callback: (channelId: string, frame: GrpcFrame) => void): () => void
     }
+  }
+  mock: {
+    /** Starts (or restarts) a real `node:http` server bound to `server.port`. */
+    start(server: MockServer): Promise<void>
+    stop(id: string): Promise<void>
+    /** Subscribe to mock request-log entries; returns an unsubscribe function. */
+    onLog(callback: (serverId: string, entry: MockLogEntry) => void): () => void
   }
 }

@@ -40,8 +40,17 @@ const api: VayntForgeApi = {
       },
     },
   },
+  mock: {
+    start: (server) => ipcRenderer.invoke(IPC.MOCK_START, server) as Promise<void>,
+    stop: (id) => ipcRenderer.invoke(IPC.MOCK_STOP, id) as Promise<void>,
+    onLog: (callback) => {
+      const listener = (_e: unknown, serverId: string, entry: unknown) => callback(serverId, entry as MockLogEntry)
+      ipcRenderer.on(IPC.MOCK_LOG, listener)
+      return () => ipcRenderer.removeListener(IPC.MOCK_LOG, listener)
+    },
+  },
 }
 
-import type { GrpcFrame, GrpcStreamResult, GrpcUnaryResult } from '@vayntforge/engine'
+import type { GrpcFrame, GrpcStreamResult, GrpcUnaryResult, MockLogEntry } from '@vayntforge/engine'
 
 contextBridge.exposeInMainWorld('vayntforge', api)
