@@ -21,6 +21,27 @@ const api: VayntForgeApi = {
   scripts: {
     run: (code, context) => ipcRenderer.invoke(IPC.SCRIPTS_RUN, code, context),
   },
+  realtime: {
+    grpc: {
+      start: () => ipcRenderer.invoke(IPC.GRPC_START) as Promise<string>,
+      unary: (channelId, method, message, metadata) =>
+        ipcRenderer.invoke(IPC.GRPC_UNARY, channelId, method, message, metadata) as Promise<GrpcUnaryResult>,
+      serverStream: (channelId, method, message, metadata) =>
+        ipcRenderer.invoke(IPC.GRPC_SERVER_STREAM, channelId, method, message, metadata) as Promise<void>,
+      clientStream: (channelId, method, messages, metadata) =>
+        ipcRenderer.invoke(IPC.GRPC_CLIENT_STREAM, channelId, method, messages, metadata) as Promise<GrpcStreamResult>,
+      bidiStart: (channelId, method) => ipcRenderer.invoke(IPC.GRPC_BIDI_START, channelId, method) as Promise<void>,
+      bidiSend: (channelId, message) => ipcRenderer.invoke(IPC.GRPC_BIDI_SEND, channelId, message) as Promise<void>,
+      bidiEnd: (channelId) => ipcRenderer.invoke(IPC.GRPC_BIDI_END, channelId) as Promise<void>,
+      onFrame: (callback) => {
+        const listener = (_e: unknown, channelId: string, frame: unknown) => callback(channelId, frame as GrpcFrame)
+        ipcRenderer.on(IPC.GRPC_FRAME, listener)
+        return () => ipcRenderer.removeListener(IPC.GRPC_FRAME, listener)
+      },
+    },
+  },
 }
+
+import type { GrpcFrame, GrpcStreamResult, GrpcUnaryResult } from '@vayntforge/engine'
 
 contextBridge.exposeInMainWorld('vayntforge', api)

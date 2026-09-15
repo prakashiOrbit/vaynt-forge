@@ -1,6 +1,24 @@
 import { Plus, X } from 'lucide-react'
 import { MethodBadge } from '@vayntforge/ui'
 import { useSession } from '../stores/session'
+import type { TabKind } from '@vayntforge/engine'
+
+const PROTOCOL_LABELS: Record<NonNullable<TabKind>, string> = {
+  http: 'HTTP',
+  ws: 'WS',
+  sse: 'SSE',
+  graphql: 'GQL',
+  grpc: 'gRPC',
+}
+
+function ProtocolBadge({ kind }: { kind?: TabKind }) {
+  if (!kind || kind === 'http') return null
+  return (
+    <span className="rounded bg-accent-2/20 px-1 py-0.5 text-[9px] font-semibold text-accent-2">
+      {PROTOCOL_LABELS[kind]}
+    </span>
+  )
+}
 
 export function WorkspaceTabs() {
   const tabs = useSession((s) => s.tabs)
@@ -29,7 +47,7 @@ export function WorkspaceTabs() {
                   : 'border-t-2 border-t-transparent bg-bg text-muted hover:bg-bg-hover hover:text-text'
               }`}
             >
-              <MethodBadge method={tab.method} />
+              {tab.kind ? <ProtocolBadge kind={tab.kind} /> : <MethodBadge method={tab.method} />}
               <span className="truncate">{tab.name}</span>
               {tab.dirty && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
               <button

@@ -1,18 +1,40 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { HttpMethod } from '@vayntforge/engine'
+import type { HttpMethod, TabKind } from '@vayntforge/engine'
+import { useRealtime } from './realtime'
 
 export interface WorkspaceTab {
   id: string
+  kind?: TabKind
   method: HttpMethod
   name: string
   url: string
   dirty?: boolean
 }
 
-export function newRequestTab(seed?: Partial<Omit<WorkspaceTab, 'method'>>): WorkspaceTab {
+export function newRequestTab(seed?: Partial<Omit<WorkspaceTab, 'method' | 'kind'>>): WorkspaceTab {
   const id = seed?.id ?? `req_${crypto.randomUUID().slice(0, 8)}`
   return { id, method: 'GET', name: 'New Request', url: 'https://api.acme.dev/v1/users', ...seed }
+}
+
+export function newWebSocketTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `ws_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'ws', method: 'GET', name: 'WebSocket', url: 'ws://demo.vayntforge.dev/chat', ...seed }
+}
+
+export function newSseTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `sse_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'sse', method: 'GET', name: 'SSE Monitor', url: 'https://demo.vayntforge.dev/events', ...seed }
+}
+
+export function newGraphQLTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `gql_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'graphql', method: 'POST', name: 'GraphQL', url: 'https://api.acme.dev/graphql', ...seed }
+}
+
+export function newGrpcTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `grpc_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'grpc', method: 'POST', name: 'gRPC', url: '127.0.0.1', ...seed }
 }
 
 /** Nav id the shell switches to whenever a request/websocket tab becomes active. */
@@ -47,6 +69,10 @@ interface SessionState {
   completeOnboarding(): void
   setPaletteOpen(open: boolean): void
   openNewRequest(): void
+  openNewWebSocket(): void
+  openNewSSE(): void
+  openNewGraphQL(): void
+  openNewGrpc(): void
 }
 
 export const useSession = create<SessionState>()(
@@ -74,13 +100,15 @@ export const useSession = create<SessionState>()(
             ? { activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
             : { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
         ),
-      closeTab: (id) =>
+      closeTab: (id) => {
+        useRealtime.getState().remove(id)
         set((s) => {
           const tabs = s.tabs.filter((t) => t.id !== id)
           const activeTabId =
             s.activeTabId === id ? (tabs[tabs.length - 1]?.id ?? null) : s.activeTabId
           return { tabs, activeTabId, activeNav: activeTabId ? s.activeNav : 'home' }
-        }),
+        })
+      },
       setActiveTab: (id) => set({ activeTabId: id, activeNav: id ? REQUEST_BUILDER_NAV : 'home' }),
       updateTab: (id, patch) =>
         set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
@@ -94,6 +122,26 @@ export const useSession = create<SessionState>()(
       openNewRequest: () =>
         set((s) => {
           const tab = newRequestTab()
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openNewWebSocket: () =>
+        set((s) => {
+          const tab = newWebSocketTab()
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openNewSSE: () =>
+        set((s) => {
+          const tab = newSseTab()
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openNewGraphQL: () =>
+        set((s) => {
+          const tab = newGraphQLTab()
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openNewGrpc: () =>
+        set((s) => {
+          const tab = newGrpcTab()
           return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
         }),
     }),

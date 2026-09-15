@@ -22,6 +22,10 @@ import type {
   ScriptResult,
   OpenApiSpec,
   OpenApiSpecDraft,
+  GrpcUnaryResult,
+  GrpcStreamResult,
+  GrpcFrame,
+  GrpcMetadataArg,
 } from '@vayntforge/engine'
 
 /** Plain-object variable scopes — reassembled into a `ResolutionContext` (Maps) main-side. */
@@ -132,5 +136,34 @@ export interface VayntForgeApi {
   scripts: {
     /** Runs a pre-request/post-response script in a sandboxed `vm` context. */
     run(code: string, context: ScriptContext): Promise<ScriptResult>
+  }
+  realtime: {
+    /**
+     * Sprint 9 — the in-app gRPC mock server (`@grpc/grpc-js`, JSON wire
+     * format). Server-stream and bidi frames arrive through `onFrame`, routed
+     * by the renderer tab's `channelId`.
+     */
+    grpc: {
+      /** Lazily starts the demo server; resolves to its `host:port`. */
+      start(): Promise<string>
+      unary(
+        channelId: string,
+        method: string,
+        message: unknown,
+        metadata?: GrpcMetadataArg[]
+      ): Promise<GrpcUnaryResult>
+      serverStream(channelId: string, method: string, message: unknown, metadata?: GrpcMetadataArg[]): Promise<void>
+      clientStream(
+        channelId: string,
+        method: string,
+        messages: unknown[],
+        metadata?: GrpcMetadataArg[]
+      ): Promise<GrpcStreamResult>
+      bidiStart(channelId: string, method: string): Promise<void>
+      bidiSend(channelId: string, message: unknown): Promise<void>
+      bidiEnd(channelId: string): Promise<void>
+      /** Subscribe to gRPC frames; returns an unsubscribe function. */
+      onFrame(callback: (channelId: string, frame: GrpcFrame) => void): () => void
+    }
   }
 }

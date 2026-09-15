@@ -5,8 +5,22 @@ import { IPC } from '../shared/ipc'
 import type { StorageService } from './storageService'
 import type { VariableScopes } from '../shared/types'
 import { runScript } from './scriptSandbox'
+import {
+  ensureGrpcServer,
+  grpcBidiEnd,
+  grpcBidiSend,
+  grpcBidiStart,
+  grpcClientStream,
+  grpcServerStream,
+  grpcUnary,
+} from './grpcServer'
+import type { GrpcMetadataArg } from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
+
+const emitTo = (event: Electron.IpcMainInvokeEvent) => (channelId: string, frame: object) => {
+  event.sender.send(IPC.GRPC_FRAME, channelId, { ...frame, channelId, timestamp: Date.now() })
+}
 
 export function registerIpcHandlers(storage: StorageService): void {
   ipcMain.handle(IPC.PING, () => `pong @ ${new Date().toISOString()}`)
@@ -34,5 +48,49 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   ipcMain.handle(IPC.SCRIPTS_RUN, async (_event, code: string, context: ScriptContext) => {
     return runScript(code, context)
+  })
+
+  // Sprint 9 — the in-app gRPC demo server. Server-stream/bidi frames are
+  // pushed back to the initiating window over IPC.GRPC_FRAME.
+  ipcMain.handle(IPC.GRPC_START, async (event) => {
+    const emit = emitTo(event)
+    const address = await ensureGrpcServer()
+    emit('server', { kind: 'ready', method: 'server', message: { address } })
+    return address
+  })
+
+  ipcMain.handle(
+    IPC.GRPC_UNARY,
+    async (event, channelId: string, method: string, message: unknown, metadata?: GrpcMetadataArg[]) =>
+      grpcUnary(channelId, method, message, metadata, emitTo(event))
+  )
+
+  ipcMain.handle(IPC.GRPC_SERVER_STREAM, async (event, channelId: string, method: string, message: unknown, metadata?: GrpcMetadataArg[]) => {
+    grpcServerStream(channelId, method, message, metadata, emitTo(event)).catch((err) =>
+      emitTo(event)(channelId, { kind: 'error', method, message: { message: err?.message ?? String(err) } })
+    )
+  })
+
+  ipcMain.handle(
+    IPC.GRPC_CLIENT_STREAM,
+    async (event, channelId: string, method: string, messages: unknown[], metadata?: GrpcMetadataArg[]) =>
+      grpcClientStream(channelId, method, messages, metadata, emitTo(event))
+  )
+
+  ipcMain.handle(IPC.GRPC_BIDI_START, async (event, channelId: string, method: string) => {
+    const emit = emitTo(event)
+    grpcBidiStart(channelId, method, (frame) => emit(channelId, frame)).catch((err) =>
+      emit(channelId, { kind: 'error', method, message: { message: err?.message ?? String(err) } })
+    )
+  })
+
+  ipcMain.handle(IPC.GRPC_BIDI_SEND, async (event, channelId: string, message: unknown) => {
+    grpcBidiSend(channelId, message, (frame) => emitTo(event)(channelId, frame)).catch((err) =>
+      emitTo(event)(channelId, { kind: 'error', method: 'Chat', message: { message: err?.message ?? String(err) } })
+    )
+  })
+
+  ipcMain.handle(IPC.GRPC_BIDI_END, async (event, channelId: string) => {
+    grpcBidiEnd(channelId, (frame) => emitTo(event)(channelId, frame)).catch(() => undefined)
   })
 }

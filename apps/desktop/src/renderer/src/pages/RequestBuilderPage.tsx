@@ -18,6 +18,10 @@ import { ScriptsPanel } from '../components/request-builder/ScriptsPanel'
 import { TestsPanel } from '../components/request-builder/TestsPanel'
 import { SettingsPanel } from '../components/request-builder/SettingsPanel'
 import { ResponsePanel } from '../components/request-builder/ResponsePanel'
+import { WebSocketPanel } from '../components/realtime/WebSocketPanel'
+import { SsePanel } from '../components/realtime/SsePanel'
+import { GraphQLPanel } from '../components/realtime/GraphQLPanel'
+import { GrpcPanel } from '../components/realtime/GrpcPanel'
 import type { RequestPanelProps } from '../components/request-builder/types'
 
 type SubTab = 'params' | 'auth' | 'headers' | 'body' | 'scripts' | 'tests' | 'settings'
@@ -107,6 +111,19 @@ export function RequestBuilderPage() {
         title="No request open"
         description="Open a request from the explorer or start a new one."
       />
+    )
+  }
+
+  if (tab.kind) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1">
+          {tab.kind === 'ws' && <WebSocketPanel tabId={tab.id} />}
+          {tab.kind === 'sse' && <SsePanel tabId={tab.id} />}
+          {tab.kind === 'graphql' && <GraphQLPanel tabId={tab.id} />}
+          {tab.kind === 'grpc' && <GrpcPanel tabId={tab.id} />}
+        </div>
+      </div>
     )
   }
 

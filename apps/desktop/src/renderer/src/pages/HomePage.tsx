@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BookOpen,
+  Braces,
   CheckCircle2,
   Clock,
   FileJson,
@@ -10,21 +11,27 @@ import {
   HeartPulse,
   Play,
   Plus,
+  Radio,
   Server,
   SlidersHorizontal,
+  Waves,
   XCircle,
 } from 'lucide-react'
 import { Button, MethodBadge, StatusCode } from '@vayntforge/ui'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 
-const QUICK_ACTIONS = [
-  { label: 'New Request', icon: Plus },
-  { label: 'New Collection', icon: FolderOpen, nav: 'collections' },
-  { label: 'Import OpenAPI', icon: FileJson, nav: 'openapi' },
-  { label: 'Import Collection', icon: BookOpen, nav: 'collections' },
-  { label: 'New Environment', icon: SlidersHorizontal, nav: 'environments' },
-  { label: 'Create Mock Server', icon: Server, nav: 'mock-servers' },
+const QUICK_ACTIONS: { label: string; icon: typeof Plus; open: 'request' | 'graphql' | 'ws' | 'sse' | 'grpc' | 'nav'; nav?: string }[] = [
+  { label: 'New Request', icon: Plus, open: 'request' },
+  { label: 'New Collection', icon: FolderOpen, open: 'nav', nav: 'collections' },
+  { label: 'Import OpenAPI', icon: FileJson, open: 'nav', nav: 'openapi' },
+  { label: 'Import Collection', icon: BookOpen, open: 'nav', nav: 'collections' },
+  { label: 'GraphQL', icon: Braces, open: 'graphql' },
+  { label: 'New WebSocket', icon: Radio, open: 'ws' },
+  { label: 'SSE Monitor', icon: Waves, open: 'sse' },
+  { label: 'gRPC', icon: Server, open: 'grpc' },
+  { label: 'New Environment', icon: SlidersHorizontal, open: 'nav', nav: 'environments' },
+  { label: 'Create Mock Server', icon: Server, open: 'nav', nav: 'mock-servers' },
 ]
 
 function formatDuration(ms: number): string {
@@ -47,6 +54,10 @@ export function HomePage() {
 
   const setActiveNav = useSession((s) => s.setActiveNav)
   const openNewRequest = useSession((s) => s.openNewRequest)
+  const openNewWebSocket = useSession((s) => s.openNewWebSocket)
+  const openNewSSE = useSession((s) => s.openNewSSE)
+  const openNewGraphQL = useSession((s) => s.openNewGraphQL)
+  const openNewGrpc = useSession((s) => s.openNewGrpc)
   const openTab = useSession((s) => s.openTab)
   const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
   const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
@@ -286,9 +297,14 @@ export function HomePage() {
               {QUICK_ACTIONS.map((a) => (
                 <button
                   key={a.label}
-                  onClick={() =>
-                    a.label === 'New Request' ? openNewRequest() : setActiveNav(a.nav ?? 'home')
-                  }
+                  onClick={() => {
+                    if (a.open === 'request') return openNewRequest()
+                    if (a.open === 'graphql') return openNewGraphQL()
+                    if (a.open === 'ws') return openNewWebSocket()
+                    if (a.open === 'sse') return openNewSSE()
+                    if (a.open === 'grpc') return openNewGrpc()
+                    return setActiveNav(a.nav ?? 'home')
+                  }}
                   className="flex items-start gap-2 rounded-md border border-border bg-raised px-3 py-2 text-left text-[12px] text-muted transition-colors hover:border-border-strong hover:text-text"
                 >
                   <a.icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
