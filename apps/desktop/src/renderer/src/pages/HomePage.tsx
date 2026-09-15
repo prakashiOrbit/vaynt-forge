@@ -8,6 +8,7 @@ import {
   Clock,
   FileJson,
   FolderOpen,
+  GitCompare,
   HeartPulse,
   Play,
   Plus,
@@ -21,7 +22,7 @@ import { Button, MethodBadge, StatusCode } from '@vayntforge/ui'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 
-const QUICK_ACTIONS: { label: string; icon: typeof Plus; open: 'request' | 'graphql' | 'ws' | 'sse' | 'grpc' | 'nav'; nav?: string }[] = [
+const QUICK_ACTIONS: { label: string; icon: typeof Plus; open: 'request' | 'graphql' | 'ws' | 'sse' | 'grpc' | 'compare' | 'nav'; nav?: string }[] = [
   { label: 'New Request', icon: Plus, open: 'request' },
   { label: 'New Collection', icon: FolderOpen, open: 'nav', nav: 'collections' },
   { label: 'Import OpenAPI', icon: FileJson, open: 'nav', nav: 'openapi' },
@@ -32,6 +33,8 @@ const QUICK_ACTIONS: { label: string; icon: typeof Plus; open: 'request' | 'grap
   { label: 'gRPC', icon: Server, open: 'grpc' },
   { label: 'New Environment', icon: SlidersHorizontal, open: 'nav', nav: 'environments' },
   { label: 'Create Mock Server', icon: Server, open: 'nav', nav: 'mock-servers' },
+  { label: 'Compare Requests', icon: GitCompare, open: 'compare' },
+  { label: 'Performance Test', icon: Activity, open: 'nav', nav: 'performance' },
 ]
 
 function formatDuration(ms: number): string {
@@ -58,6 +61,7 @@ export function HomePage() {
   const openNewSSE = useSession((s) => s.openNewSSE)
   const openNewGraphQL = useSession((s) => s.openNewGraphQL)
   const openNewGrpc = useSession((s) => s.openNewGrpc)
+  const openCompare = useSession((s) => s.openCompare)
   const openTab = useSession((s) => s.openTab)
   const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
   const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
@@ -303,6 +307,7 @@ export function HomePage() {
                     if (a.open === 'ws') return openNewWebSocket()
                     if (a.open === 'sse') return openNewSSE()
                     if (a.open === 'grpc') return openNewGrpc()
+                    if (a.open === 'compare') return openCompare()
                     return setActiveNav(a.nav ?? 'home')
                   }}
                   className="flex items-start gap-2 rounded-md border border-border bg-raised px-3 py-2 text-left text-[12px] text-muted transition-colors hover:border-border-strong hover:text-text"

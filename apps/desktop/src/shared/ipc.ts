@@ -17,6 +17,10 @@ export const IPC = {
   MOCK_START: 'mock:start',
   MOCK_STOP: 'mock:stop',
   MOCK_LOG: 'mock:log',
+  PERF_START: 'perf:start',
+  PERF_CANCEL: 'perf:cancel',
+  PERF_PROGRESS: 'perf:progress',
+  PERF_DONE: 'perf:done',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

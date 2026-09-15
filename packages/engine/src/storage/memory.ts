@@ -17,6 +17,7 @@ import type { MockServer } from '../types/mock'
 import type { AppSettings } from '../types/settings'
 import type { AppNotification } from '../types/notifications'
 import type { OpenApiSpec } from '../openapi/types'
+import type { PerformanceRun } from '../types/performance'
 import { seedProvider } from './seed'
 
 /**
@@ -33,6 +34,7 @@ export class InMemoryStorage implements StorageProvider {
   private globalVariables = new Map<string, Variable>()
   private mockServers = new Map<string, MockServer>()
   private openApiSpecs = new Map<string, OpenApiSpec>()
+  private performanceRuns = new Map<string, PerformanceRun>()
   private history: HistoryEntry[] = []
   private testRuns = new Map<string, TestRun>()
   private settings = new Map<string, AppSettings>()
@@ -79,6 +81,7 @@ export class InMemoryStorage implements StorageProvider {
     for (const v of this.listGlobalVariables(id)) this.globalVariables.delete(v.id)
     for (const s of this.listMockServers(id)) this.mockServers.delete(s.id)
     for (const spec of this.listOpenApiSpecs(id)) this.openApiSpecs.delete(spec.id)
+    for (const run of this.listPerformanceRuns(id)) this.performanceRuns.delete(run.id)
     this.history = this.history.filter((h) => h.workspaceId !== id)
     for (const r of this.listTestRuns(id)) this.testRuns.delete(r.id)
     for (const n of this.listNotifications(id)) this.notifications.delete(n.id)
@@ -196,6 +199,22 @@ export class InMemoryStorage implements StorageProvider {
   }
   deleteOpenApiSpec(id: string): void {
     this.openApiSpecs.delete(id)
+  }
+
+  // ── Performance runs ──────────────────────────────────────
+  listPerformanceRuns(workspaceId: string): PerformanceRun[] {
+    return [...this.performanceRuns.values()]
+      .filter((r) => r.workspaceId === workspaceId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+  }
+  getPerformanceRun(id: string): PerformanceRun | undefined {
+    return this.performanceRuns.get(id)
+  }
+  savePerformanceRun(run: PerformanceRun): void {
+    this.performanceRuns.set(run.id, { ...run, updatedAt: Date.now() })
+  }
+  deletePerformanceRun(id: string): void {
+    this.performanceRuns.delete(id)
   }
 
   // ── History ───────────────────────────────────────────────

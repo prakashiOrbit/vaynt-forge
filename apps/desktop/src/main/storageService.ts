@@ -23,6 +23,7 @@ import type {
   NotificationDraft,
   OpenApiSpec,
   OpenApiSpecDraft,
+  PerformanceRun,
 } from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../shared/types'
 
@@ -96,6 +97,7 @@ export class StorageService implements StorageChannel {
       globalVariables: this.provider.listGlobalVariables(workspaceId),
       mockServers: this.provider.listMockServers(workspaceId),
       openApiSpecs: this.provider.listOpenApiSpecs(workspaceId),
+      performanceRuns: this.provider.listPerformanceRuns(workspaceId),
       history: this.provider.listHistory(workspaceId),
       testRuns: this.provider.listTestRuns(workspaceId),
       settings: this.provider.getSettings(workspaceId) ?? DEFAULT_APP_SETTINGS,
@@ -176,6 +178,20 @@ export class StorageService implements StorageChannel {
   }
   async deleteOpenApiSpec(id: string): Promise<void> {
     this.provider.deleteOpenApiSpec(id)
+  }
+
+  // ── Performance runs ──────────────────────────────────────
+  async savePerformanceRun(run: PerformanceRun): Promise<PerformanceRun> {
+    this.provider.savePerformanceRun(run)
+    return this.provider.getPerformanceRun(run.id) ?? run
+  }
+  async deletePerformanceRun(id: string): Promise<void> {
+    this.provider.deletePerformanceRun(id)
+  }
+  /** Sync lookup for the load-test runtime, which persists progress without
+   * an IPC round trip through the renderer. */
+  getPerformanceRunSync(id: string): PerformanceRun | undefined {
+    return this.provider.getPerformanceRun(id)
   }
 
   // ── History ───────────────────────────────────────────────

@@ -22,6 +22,8 @@ import { WebSocketPanel } from '../components/realtime/WebSocketPanel'
 import { SsePanel } from '../components/realtime/SsePanel'
 import { GraphQLPanel } from '../components/realtime/GraphQLPanel'
 import { GrpcPanel } from '../components/realtime/GrpcPanel'
+import { DebuggerPanel } from '../components/debugger/DebuggerPanel'
+import { ComparePanel } from '../components/compare/ComparePanel'
 import type { RequestPanelProps } from '../components/request-builder/types'
 
 type SubTab = 'params' | 'auth' | 'headers' | 'body' | 'scripts' | 'tests' | 'settings'
@@ -122,6 +124,8 @@ export function RequestBuilderPage() {
           {tab.kind === 'sse' && <SsePanel tabId={tab.id} />}
           {tab.kind === 'graphql' && <GraphQLPanel tabId={tab.id} />}
           {tab.kind === 'grpc' && <GrpcPanel tabId={tab.id} />}
+          {tab.kind === 'debugger' && <DebuggerPanel tabId={tab.id} />}
+          {tab.kind === 'compare' && <ComparePanel tabId={tab.id} />}
         </div>
       </div>
     )
@@ -226,7 +230,12 @@ export function RequestBuilderPage() {
             aria-label="Resize response panel"
             className="absolute inset-x-0 top-0 z-10 h-1 cursor-row-resize bg-transparent hover:bg-accent/40 active:bg-accent"
           />
-          <ResponsePanel draft={draft} entry={responseEntry} onSend={handleSend} />
+          <ResponsePanel
+            draft={draft}
+            entry={responseEntry}
+            onSend={handleSend}
+            onOpenDebugger={() => useSession.getState().openDebugger(activeTabId)}
+          />
         </div>
       </div>
 

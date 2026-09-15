@@ -21,10 +21,12 @@ export function ResponsePanel({
   draft,
   entry,
   onSend,
+  onOpenDebugger,
 }: {
   draft: RequestModel
   entry: ResponseEntry | undefined
   onSend(): void
+  onOpenDebugger(): void
 }) {
   const [subTab, setSubTab] = useState<ResponseTab>('body')
 
@@ -50,6 +52,7 @@ export function ResponsePanel({
         url={draft.url}
         onRetry={onSend}
         onOpenRequest={() => document.getElementById('request-header')?.scrollIntoView({ block: 'start' })}
+        onOpenDebugger={onOpenDebugger}
       />
     )
   }

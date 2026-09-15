@@ -10,6 +10,8 @@ export interface WorkspaceTab {
   name: string
   url: string
   dirty?: boolean
+  /** Debugger tabs: the request/websocket tab whose draft+response they inspect. */
+  sourceTabId?: string
 }
 
 export function newRequestTab(seed?: Partial<Omit<WorkspaceTab, 'method' | 'kind'>>): WorkspaceTab {
@@ -35,6 +37,16 @@ export function newGraphQLTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
 export function newGrpcTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
   const id = `grpc_${crypto.randomUUID().slice(0, 8)}`
   return { id, kind: 'grpc', method: 'POST', name: 'gRPC', url: '127.0.0.1', ...seed }
+}
+
+export function newDebuggerTab(sourceTabId: string, seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `dbg_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'debugger', method: 'GET', name: 'Debugger', url: '', sourceTabId, ...seed }
+}
+
+export function newCompareTab(seed?: Partial<WorkspaceTab>): WorkspaceTab {
+  const id = `cmp_${crypto.randomUUID().slice(0, 8)}`
+  return { id, kind: 'compare', method: 'GET', name: 'Compare Requests', url: '', ...seed }
 }
 
 /** Nav id the shell switches to whenever a request/websocket tab becomes active. */
@@ -73,6 +85,8 @@ interface SessionState {
   openNewSSE(): void
   openNewGraphQL(): void
   openNewGrpc(): void
+  openDebugger(sourceTabId: string): void
+  openCompare(): void
 }
 
 export const useSession = create<SessionState>()(
@@ -142,6 +156,17 @@ export const useSession = create<SessionState>()(
       openNewGrpc: () =>
         set((s) => {
           const tab = newGrpcTab()
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openDebugger: (sourceTabId) =>
+        set((s) => {
+          const source = s.tabs.find((t) => t.id === sourceTabId)
+          const tab = newDebuggerTab(sourceTabId, { name: source ? `Debug: ${source.name}` : 'Debugger' })
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+        }),
+      openCompare: () =>
+        set((s) => {
+          const tab = newCompareTab()
           return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
         }),
     }),

@@ -24,3 +24,4 @@ export { MethodSelect, type MethodSelectValue, type MethodSelectProps } from './
 export { CodeEditor, type CodeEditorLanguage, type CodeEditorProps } from './components/CodeEditor'
 export { JsonTreeView, type JsonTreeViewProps } from './components/JsonTreeView'
 export { PromptDialog, type PromptDialogProps } from './components/PromptDialog'
+export { Chart, type ChartProps, type EChartsOption } from './components/Chart'

@@ -1,36 +1,22 @@
-import { AlertTriangle, Copy, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Bug, Copy, RefreshCw } from 'lucide-react'
 import { Button, toast } from '@vayntforge/ui'
+import { diagnoseFailure } from '@vayntforge/engine'
 import type { ResponseModel } from '@vayntforge/engine'
-
-const CAUSES_BY_STATUS: Record<number, string[]> = {
-  500: ['An unhandled exception on the server', 'A downstream dependency (database, cache) timed out', 'Bad deploy or config change'],
-  502: ['The upstream service is down or unreachable', 'A reverse proxy misconfiguration'],
-  503: ['The service is overloaded or in maintenance', 'Rate limiting kicked in'],
-  504: ['The upstream service took too long to respond'],
-}
-
-const NETWORK_CAUSES = [
-  'The URL is unreachable or the host does not exist',
-  'A firewall, VPN, or proxy is blocking the connection',
-  'The server is not accepting connections on that port',
-]
 
 export function ResponseError({
   response,
   url,
   onRetry,
   onOpenRequest,
+  onOpenDebugger,
 }: {
   response: ResponseModel
   url: string
   onRetry(): void
   onOpenRequest(): void
+  onOpenDebugger(): void
 }) {
-  const isNetworkError = Boolean(response.error)
-  const title = isNetworkError
-    ? `Request failed — ${response.error!.code}`
-    : `Request failed — ${response.status} ${response.statusText}`
-  const causes = isNetworkError ? NETWORK_CAUSES : (CAUSES_BY_STATUS[response.status] ?? ['An unexpected server-side error'])
+  const { isNetworkError, title, causes } = diagnoseFailure(response, url)
 
   const copyError = () => {
     const summary = [
@@ -72,6 +58,9 @@ export function ResponseError({
         </Button>
         <Button size="sm" variant="outline" onClick={onOpenRequest}>
           Open Request
+        </Button>
+        <Button size="sm" variant="outline" onClick={onOpenDebugger}>
+          <Bug className="h-3.5 w-3.5" /> Open in Debugger
         </Button>
         <Button size="sm" variant="ghost" onClick={copyError}>
           <Copy className="h-3.5 w-3.5" /> Copy Error

@@ -27,6 +27,9 @@ import type {
   GrpcFrame,
   GrpcMetadataArg,
   MockLogEntry,
+  PerformanceRun,
+  PerfTestConfig,
+  PerfSample,
 } from '@vayntforge/engine'
 
 /** Plain-object variable scopes — reassembled into a `ResolutionContext` (Maps) main-side. */
@@ -50,6 +53,7 @@ export interface WorkspaceSnapshot {
   globalVariables: Variable[]
   mockServers: MockServer[]
   openApiSpecs: OpenApiSpec[]
+  performanceRuns: PerformanceRun[]
   history: HistoryEntry[]
   testRuns: TestRun[]
   settings: AppSettings
@@ -93,6 +97,9 @@ export interface StorageChannel {
 
   createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec>
   deleteOpenApiSpec(id: string): Promise<void>
+
+  savePerformanceRun(run: PerformanceRun): Promise<PerformanceRun>
+  deletePerformanceRun(id: string): Promise<void>
 
   addHistory(entry: Omit<HistoryEntry, 'id'>): Promise<HistoryEntry>
   clearHistory(workspaceId: string): Promise<void>
@@ -173,5 +180,14 @@ export interface VayntForgeApi {
     stop(id: string): Promise<void>
     /** Subscribe to mock request-log entries; returns an unsubscribe function. */
     onLog(callback: (serverId: string, entry: MockLogEntry) => void): () => void
+  }
+  performance: {
+    /** Starts a real load test (undici.Pool concurrency) against `request`. */
+    start(runId: string, request: RequestModel, scopes: VariableScopes, config: PerfTestConfig): Promise<void>
+    cancel(runId: string): Promise<void>
+    /** Streamed as the run progresses; returns an unsubscribe function. */
+    onProgress(callback: (runId: string, batch: PerfSample[]) => void): () => void
+    /** Fired once when the run finishes (completed or cancelled). */
+    onDone(callback: (runId: string, samples: PerfSample[], durationMs: number) => void): () => void
   }
 }

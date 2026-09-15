@@ -9,8 +9,11 @@
 /** Which real-time protocol a workspace tab speaks. */
 export type RealtimeProtocol = 'graphql' | 'ws' | 'sse' | 'grpc'
 
+/** Sprint 11 — request-analysis workspace tools (not live protocols). */
+export type AnalysisTool = 'debugger' | 'compare'
+
 /** Union of tab kinds — `http` is the classic request-builder tab. */
-export type TabKind = 'http' | RealtimeProtocol
+export type TabKind = 'http' | RealtimeProtocol | AnalysisTool
 
 /** Every mock real-time fixture is tagged so the UI can label it. */
 export interface MockTagged {

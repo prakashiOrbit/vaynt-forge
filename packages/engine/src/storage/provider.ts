@@ -5,6 +5,7 @@ import type { MockServer } from '../types/mock'
 import type { AppSettings } from '../types/settings'
 import type { AppNotification, NotificationPatch } from '../types/notifications'
 import type { OpenApiSpec } from '../openapi/types'
+import type { PerformanceRun } from '../types/performance'
 
 export type WorkspaceDraft = Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>
 export type WorkspacePatch = Partial<Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>>
@@ -74,6 +75,12 @@ export interface StorageProvider {
   listOpenApiSpecs(workspaceId: string): OpenApiSpec[]
   createOpenApiSpec(input: OpenApiSpecDraft): OpenApiSpec
   deleteOpenApiSpec(id: string): void
+
+  // ── Performance runs ──────────────────────────────────────
+  listPerformanceRuns(workspaceId: string): PerformanceRun[]
+  getPerformanceRun(id: string): PerformanceRun | undefined
+  savePerformanceRun(run: PerformanceRun): void
+  deletePerformanceRun(id: string): void
 
   // ── History ───────────────────────────────────────────────
   addHistory(entry: HistoryInput): HistoryEntry

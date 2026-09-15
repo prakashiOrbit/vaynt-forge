@@ -15,6 +15,7 @@ import type {
   NotificationDraft,
   OpenApiSpec,
   OpenApiSpecDraft,
+  PerformanceRun,
   RequestModel,
   TestRun,
   Variable,
@@ -46,6 +47,7 @@ export interface WorkspaceBucket {
   globalVariables: Variable[]
   mockServers: MockServer[]
   openApiSpecs: OpenApiSpec[]
+  performanceRuns: PerformanceRun[]
   history: HistoryEntry[]
   testRuns: TestRun[]
   settings: AppSettings
@@ -64,6 +66,7 @@ export const DEFAULT_BUCKET: WorkspaceBucket = {
   globalVariables: [],
   mockServers: [],
   openApiSpecs: [],
+  performanceRuns: [],
   history: [],
   testRuns: [],
   settings: DEFAULT_APP_SETTINGS,
@@ -83,6 +86,7 @@ function bucketFromSnapshot(snap: WorkspaceSnapshot): WorkspaceBucket {
     globalVariables: snap.globalVariables,
     mockServers: snap.mockServers,
     openApiSpecs: snap.openApiSpecs,
+    performanceRuns: snap.performanceRuns,
     history: snap.history,
     testRuns: snap.testRuns,
     settings: snap.settings,
@@ -106,6 +110,7 @@ function refreshHostingBuckets(ids: string[]): (state: DataState) => Promise<voi
             b.collections.some((c) => c.id === id) ||
             b.mockServers.some((m) => m.id === id) ||
             b.openApiSpecs.some((s) => s.id === id) ||
+            b.performanceRuns.some((p) => p.id === id) ||
             b.environments.some((e) => e.id === id) ||
             b.globalVariables.some((g) => g.id === id) ||
             b.testRuns.some((t) => t.id === id) ||
@@ -153,6 +158,9 @@ interface DataState {
 
   createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec>
   deleteOpenApiSpec(id: string): Promise<void>
+
+  savePerformanceRun(run: PerformanceRun): Promise<void>
+  deletePerformanceRun(id: string): Promise<void>
 
   addHistory(workspaceId: string, entry: Omit<HistoryEntry, 'id'>): Promise<void>
   clearHistory(workspaceId: string): Promise<void>
@@ -297,6 +305,15 @@ export const useData = create<DataState>()((set, get) => ({
   },
   deleteOpenApiSpec: async (id) => {
     await call('deleteOpenApiSpec', id)
+    await refreshHostingBuckets([id])(get())
+  },
+
+  savePerformanceRun: async (run) => {
+    await call('savePerformanceRun', run)
+    await get().refresh(run.workspaceId)
+  },
+  deletePerformanceRun: async (id) => {
+    await call('deletePerformanceRun', id)
     await refreshHostingBuckets([id])(get())
   },
 

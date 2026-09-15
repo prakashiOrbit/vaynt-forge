@@ -15,7 +15,8 @@ import {
   grpcUnary,
 } from './grpcServer'
 import { startMockServer, stopMockServer } from './mockServerRuntime'
-import type { GrpcMetadataArg, MockServer } from '@vayntforge/engine'
+import { startLoadTest, cancelLoadTest } from './loadEngine'
+import type { GrpcMetadataArg, MockServer, PerfTestConfig } from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
 
@@ -106,5 +107,24 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   ipcMain.handle(IPC.MOCK_STOP, async (_event, id: string) => {
     await stopMockServer(id)
+  })
+
+  // Sprint 11 — the load engine (real undici.Pool concurrency per run).
+  ipcMain.handle(
+    IPC.PERF_START,
+    async (event, runId: string, request: RequestModel, scopes: VariableScopes, config: PerfTestConfig) => {
+      startLoadTest(
+        runId,
+        request,
+        scopes,
+        config,
+        (batch) => event.sender.send(IPC.PERF_PROGRESS, runId, batch),
+        (samples, durationMs) => event.sender.send(IPC.PERF_DONE, runId, samples, durationMs)
+      )
+    }
+  )
+
+  ipcMain.handle(IPC.PERF_CANCEL, async (_event, runId: string) => {
+    cancelLoadTest(runId)
   })
 }

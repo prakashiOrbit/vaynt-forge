@@ -18,6 +18,7 @@ import type { MockServer } from '../../engine/src/types/mock'
 import type { AppSettings } from '../../engine/src/types/settings'
 import type { AppNotification, NotificationPatch } from '../../engine/src/types/notifications'
 import type { OpenApiSpec } from '../../engine/src/openapi/types'
+import type { PerformanceRun } from '../../engine/src/types/performance'
 import { generateId } from '../../engine/src/util/id'
 
 export interface SQLiteStorageOptions {
@@ -38,6 +39,7 @@ type Table =
   | 'test_runs'
   | 'settings'
   | 'notifications'
+  | 'performance_runs'
 
 interface DataRow {
   data: string
@@ -77,6 +79,7 @@ export class SQLiteStorage implements StorageProvider {
       CREATE TABLE IF NOT EXISTS test_runs     (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS settings      (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS performance_runs (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS idx_collections_ws   ON collections(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_folders_col      ON folders(collection_id);
       CREATE INDEX IF NOT EXISTS idx_requests_ws      ON requests(workspace_id);
@@ -87,6 +90,7 @@ export class SQLiteStorage implements StorageProvider {
       CREATE INDEX IF NOT EXISTS idx_history_ws       ON history(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_testruns_ws      ON test_runs(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_ws ON notifications(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_perfruns_ws      ON performance_runs(workspace_id);
     `)
   }
 
@@ -185,7 +189,7 @@ export class SQLiteStorage implements StorageProvider {
         this.removeWhere('folders', 'collection_id', col.id)
         this.remove('collections', col.id)
       }
-      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'openapi_specs', 'history', 'test_runs', 'settings', 'notifications'] as Table[]) {
+      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'openapi_specs', 'history', 'test_runs', 'settings', 'notifications', 'performance_runs'] as Table[]) {
         this.removeWhere(t, 'workspace_id', id)
       }
       this.remove('workspaces', id)
@@ -364,6 +368,32 @@ export class SQLiteStorage implements StorageProvider {
   }
   deleteOpenApiSpec(id: string): void {
     this.remove('openapi_specs', id)
+  }
+
+  // ── Performance runs ──────────────────────────────────────
+  listPerformanceRuns(workspaceId: string): PerformanceRun[] {
+    return this.all<PerformanceRun>('performance_runs', 'workspace_id', workspaceId).sort(
+      (a, b) => b.createdAt - a.createdAt
+    )
+  }
+  getPerformanceRun(id: string): PerformanceRun | undefined {
+    return this.byId<PerformanceRun>('performance_runs', id)
+  }
+  savePerformanceRun(run: PerformanceRun): void {
+    const existing = this.byId<PerformanceRun>('performance_runs', run.id)
+    const updated: PerformanceRun = {
+      ...run,
+      workspaceId: run.workspaceId || existing?.workspaceId || '',
+      updatedAt: Date.now(),
+    }
+    if (existing) {
+      this.update('performance_runs', run.id, updated)
+    } else {
+      this.write('performance_runs', run.id, updated, { workspaceId: updated.workspaceId })
+    }
+  }
+  deletePerformanceRun(id: string): void {
+    this.remove('performance_runs', id)
   }
 
   // ── History ───────────────────────────────────────────────

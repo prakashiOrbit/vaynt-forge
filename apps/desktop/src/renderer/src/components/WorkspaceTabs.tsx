@@ -9,6 +9,8 @@ const PROTOCOL_LABELS: Record<NonNullable<TabKind>, string> = {
   sse: 'SSE',
   graphql: 'GQL',
   grpc: 'gRPC',
+  debugger: 'DBG',
+  compare: 'CMP',
 }
 
 function ProtocolBadge({ kind }: { kind?: TabKind }) {
