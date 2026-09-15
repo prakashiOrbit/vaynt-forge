@@ -29,3 +29,16 @@ export function parseDotEnv(content: string): DotEnvEntry[] {
   }
   return entries
 }
+
+/** Inverse of {@link parseDotEnv} — Sprint 12's Environment export. Quotes
+ * any value containing whitespace, `#`, or `=` so it round-trips through
+ * `parseDotEnv` unchanged. */
+export function stringifyDotEnv(entries: DotEnvEntry[]): string {
+  return entries
+    .map(({ key, value }) => {
+      const needsQuotes = /[\s#="]/.test(value)
+      const escaped = needsQuotes ? `"${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"` : value
+      return `${key}=${escaped}`
+    })
+    .join('\n')
+}
