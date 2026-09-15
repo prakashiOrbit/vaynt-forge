@@ -1,9 +1,11 @@
 import { Bell, CircleHelp, Command, Search, Settings2, Zap } from 'lucide-react'
 import { useSession } from '../stores/session'
 import { EnvironmentSelector } from './EnvironmentSelector'
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 export function TopBar() {
   const toggleSidebar = useSession((s) => s.toggleSidebar)
+  const setPaletteOpen = useSession((s) => s.setPaletteOpen)
 
   return (
     <header className="flex h-11 shrink-0 items-center gap-3 border-b border-border bg-raised px-3">
@@ -21,11 +23,12 @@ export function TopBar() {
           </div>
           <span className="text-[13px] font-bold tracking-[0.22em] text-text">APIFORGE</span>
         </div>
+        <WorkspaceSwitcher />
       </div>
 
       <div className="mx-auto flex min-w-0 max-w-xl flex-1">
         <button
-          onClick={() => {}}
+          onClick={() => setPaletteOpen(true)}
           className="group flex h-8 w-full items-center gap-2.5 rounded-md border border-border bg-bg-input px-3 text-[13px] text-faint transition-colors hover:border-border-strong focus-visible:border-accent focus-visible:outline-none"
           aria-label="Open command palette"
         >

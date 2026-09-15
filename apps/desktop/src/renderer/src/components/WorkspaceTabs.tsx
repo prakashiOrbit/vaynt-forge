@@ -6,6 +6,7 @@ export function WorkspaceTabs() {
   const activeTabId = useSession((s) => s.activeTabId)
   const setActiveTab = useSession((s) => s.setActiveTab)
   const closeTab = useSession((s) => s.closeTab)
+  const openNewRequest = useSession((s) => s.openNewRequest)
 
   const methodColor = (method: string) => {
     switch (method) {
@@ -64,7 +65,7 @@ export function WorkspaceTabs() {
         })}
       </div>
       <button
-        onClick={() => {}}
+        onClick={openNewRequest}
         aria-label="New request tab"
         className="flex h-full items-center px-3 text-muted transition-colors hover:bg-bg-hover hover:text-text"
       >

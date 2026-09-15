@@ -1,0 +1,219 @@
+import { useEffect, useState } from 'react'
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  Download,
+  LayoutGrid,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useSession } from '../stores/session'
+
+export function WorkspaceSwitcher() {
+  const workspaces = useSession((s) => s.workspaces)
+  const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
+  const setActiveWorkspace = useSession((s) => s.setActiveWorkspace)
+  const createWorkspace = useSession((s) => s.createWorkspace)
+  const renameWorkspace = useSession((s) => s.renameWorkspace)
+  const duplicateWorkspace = useSession((s) => s.duplicateWorkspace)
+  const deleteWorkspace = useSession((s) => s.deleteWorkspace)
+
+  const [open, setOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  const active = workspaces.find((w) => w.id === activeWorkspaceId)
+
+  useEffect(() => {
+    if (!open) {
+      setAdding(false)
+      setRenamingId(null)
+    }
+  }, [open])
+
+  const exportWorkspace = (id: string) => {
+    const ws = workspaces.find((w) => w.id === id)
+    if (!ws) return
+    const blob = new Blob([JSON.stringify(ws, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${ws.name.replace(/\s+/g, '-').toLowerCase()}.workspace.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const submitNew = () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    createWorkspace(trimmed)
+    setName('')
+    setAdding(false)
+    setOpen(false)
+  }
+
+  const submitRename = () => {
+    if (renamingId && renameValue.trim()) renameWorkspace(renamingId, renameValue.trim())
+    setRenamingId(null)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Switch workspace"
+        aria-expanded={open}
+        className="flex h-7 items-center gap-1.5 rounded-md px-2 text-[12px] font-medium text-muted transition-colors hover:bg-bg-hover hover:text-text"
+      >
+        <LayoutGrid className="h-3.5 w-3.5 text-accent" />
+        <span className="max-w-[120px] truncate">{active?.name ?? 'No Workspace'}</span>
+        <ChevronDown className={`h-3 w-3 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-lg border border-border bg-overlay shadow-2xl">
+            <div className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-faint">
+              Workspaces
+            </div>
+
+            <div className="px-1.5 pb-1.5">
+              {workspaces.map((ws) => {
+                const isActive = ws.id === activeWorkspaceId
+                return (
+                  <div
+                    key={ws.id}
+                    className="group relative flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-bg-hover"
+                  >
+                    {renamingId === ws.id ? (
+                      <>
+                        <input
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') submitRename()
+                            if (e.key === 'Escape') setRenamingId(null)
+                          }}
+                          autoFocus
+                          className="h-6 min-w-0 flex-1 rounded border border-accent bg-bg-input px-1.5 text-[12px] text-text outline-none"
+                        />
+                        <span className="flex items-center gap-0.5 text-faint">
+                          <button
+                            onClick={submitRename}
+                            aria-label="Confirm rename"
+                            className="rounded p-0.5 hover:text-ok"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setRenamingId(null)}
+                            aria-label="Cancel rename"
+                            className="rounded p-0.5 hover:text-text"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => {
+                            setActiveWorkspace(ws.id)
+                            setOpen(false)
+                          }}
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        >
+                          <LayoutGrid className={`h-3.5 w-3.5 shrink-0 ${isActive ? 'text-accent' : 'text-faint'}`} />
+                          <span className="truncate text-[12px] text-text">{ws.name}</span>
+                          {ws.isDemo && (
+                            <span className="rounded bg-accent/12 px-1 py-px text-[9px] font-medium uppercase tracking-wide text-accent">
+                              Demo
+                            </span>
+                          )}
+                        </button>
+                        <span className="flex items-center gap-0.5 text-faint opacity-0 transition-opacity group-hover:opacity-100">
+                          {isActive && <Check className="h-3.5 w-3.5 text-accent" />}
+                          <button
+                            onClick={() => {
+                              setRenamingId(ws.id)
+                              setRenameValue(ws.name)
+                            }}
+                            aria-label={`Rename ${ws.name}`}
+                            className="rounded p-0.5 hover:text-text"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => duplicateWorkspace(ws.id)}
+                            aria-label={`Duplicate ${ws.name}`}
+                            className="rounded p-0.5 hover:text-text"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => exportWorkspace(ws.id)}
+                            aria-label={`Export ${ws.name}`}
+                            className="rounded p-0.5 hover:text-text"
+                          >
+                            <Download className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={() => deleteWorkspace(ws.id)}
+                            aria-label={`Delete ${ws.name}`}
+                            disabled={workspaces.length <= 1}
+                            className="rounded p-0.5 hover:text-err disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="border-t border-border p-1.5">
+              {adding ? (
+                <div className="flex items-center gap-1.5 px-1 py-0.5">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') submitNew()
+                      if (e.key === 'Escape') setAdding(false)
+                    }}
+                    autoFocus
+                    placeholder="Workspace name"
+                    className="h-7 min-w-0 flex-1 rounded-md border border-accent bg-bg-input px-2 text-[12px] text-text outline-none placeholder:text-faint"
+                  />
+                  <button
+                    onClick={submitNew}
+                    aria-label="Create workspace"
+                    className="rounded p-1 text-faint hover:text-ok"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setAdding(true)}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[12px] text-muted transition-colors hover:bg-bg-hover hover:text-text"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New Workspace
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

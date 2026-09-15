@@ -18,11 +18,11 @@ import { useSession } from '../stores/session'
 
 const QUICK_ACTIONS = [
   { label: 'New Request', icon: Plus },
-  { label: 'New Collection', icon: FolderOpen },
-  { label: 'Import OpenAPI', icon: FileJson },
-  { label: 'Import Collection', icon: BookOpen },
-  { label: 'New Environment', icon: SlidersHorizontal },
-  { label: 'Create Mock Server', icon: Server },
+  { label: 'New Collection', icon: FolderOpen, nav: 'collections' },
+  { label: 'Import OpenAPI', icon: FileJson, nav: 'openapi' },
+  { label: 'Import Collection', icon: BookOpen, nav: 'collections' },
+  { label: 'New Environment', icon: SlidersHorizontal, nav: 'environments' },
+  { label: 'Create Mock Server', icon: Server, nav: 'mock-servers' },
 ]
 
 function formatDuration(ms: number): string {
@@ -43,6 +43,15 @@ export function HomePage() {
   const environments = storage.listEnvironments(wsId)
   const mockServers = storage.listMockServers(wsId)
   const setActiveNav = useSession((s) => s.setActiveNav)
+  const openNewRequest = useSession((s) => s.openNewRequest)
+  const openTab = useSession((s) => s.openTab)
+  const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
+  const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
+  const workspaces = useSession((s) => s.workspaces)
+
+  const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId)
+  const activeEnvName =
+    environments.find((e) => e.id === activeEnvironmentId)?.name ?? 'Development'
 
   const failed = history.filter((h) => h.status >= 400)
   const avgLatency = history.length
@@ -55,10 +64,11 @@ export function HomePage() {
         <div>
           <h1 className="text-lg font-semibold text-text">Welcome back</h1>
           <p className="mt-1 text-[13px] text-muted">
-            Acme API · Development · 3 collections · 12 requests
+            {activeWorkspace?.name ?? 'Acme API'} · {activeEnvName} · 3 collections ·{' '}
+            {requests.length} requests
           </p>
         </div>
-        <Button size="md" onClick={() => setActiveNav('requests')}>
+        <Button size="md" onClick={openNewRequest}>
           <Plus className="h-4 w-4" /> New Request
         </Button>
       </section>
@@ -131,7 +141,9 @@ export function HomePage() {
               {requests.slice(0, 4).map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => setActiveNav('requests')}
+                  onClick={() =>
+                    openTab({ id: r.id, method: r.method, name: r.name, url: r.url })
+                  }
                   className="group flex w-full items-center gap-3 rounded-md border border-border bg-raised px-3 py-2 text-left transition-colors hover:bg-bg-hover"
                 >
                   <MethodBadge method={r.method} />
@@ -199,7 +211,9 @@ export function HomePage() {
               {QUICK_ACTIONS.map((a) => (
                 <button
                   key={a.label}
-                  onClick={() => setActiveNav('home')}
+                  onClick={() =>
+                    a.label === 'New Request' ? openNewRequest() : setActiveNav(a.nav ?? 'home')
+                  }
                   className="flex items-center gap-2 rounded-md border border-border bg-raised px-3 py-2 text-[12px] text-muted transition-colors hover:border-border-strong hover:text-text"
                 >
                   <a.icon className="h-3.5 w-3.5 text-faint" />

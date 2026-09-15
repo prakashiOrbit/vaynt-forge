@@ -81,22 +81,22 @@ shell — not the product.
 **Goal:** Full shell (TopBar / Sidebar / StatusBar), all nav items live, workspace tabs, onboarding, environment selector.
 
 ### Tasks
-- [ ] `AppShell` layout: TopBar, left Sidebar, main content area, StatusBar
-- [ ] Sidebar with all 13 primary nav items: Home, Workspace, Requests, Collections, Tests, Mock Servers, OpenAPI, History, Performance, WebSockets, Environments, Documentation, Settings (bottom)
-- [ ] Sidebar collapse/expand + persistent width
-- [ ] TopBar: APIForge logo, global search trigger (`Cmd/Ctrl + K`), environment selector, notifications, help, settings, user/workspace indicator
-- [ ] IDE-style **workspace tabs** (`[GET /users] [POST /login] [WebSocket] [+]`) with: method colour, name, unsaved dot, close button, active state, scrolling
-- [ ] Placeholder screens for **every** sidebar item (no dead buttons — all open real screens)
-- [ ] First-launch onboarding flow (Welcome → Create Workspace / Import OpenAPI / Import Collection / Start with Demo Workspace) — default prototype path = Demo Workspace ("Acme API")
-- [ ] Workspace switcher (My Workspace, Acme API, iTouch, Project ARC; create/rename/duplicate/delete/export)
-- [ ] Keyboard shortcuts foundation (registered once, used everywhere)
+- [x] `AppShell` layout: TopBar, left Sidebar, main content area, StatusBar
+- [x] Sidebar with all 13 primary nav items: Home, Workspace, Requests, Collections, Tests, Mock Servers, OpenAPI, History, Performance, WebSockets, Environments, Documentation, Settings (bottom)
+- [x] Sidebar collapse/expand + persistent width (drag-resize handle, 52–320px, persisted)
+- [x] TopBar: APIForge logo, global search trigger (`Cmd/Ctrl + K`), environment selector, notifications, help, settings, user/workspace indicator ✅
+- [x] IDE-style **workspace tabs** (`[GET /users] [POST /login] [WebSocket] [+]`) with: method colour, name, unsaved dot, close button, active state, scrolling (+ `[+]` opens a real new-request tab)
+- [x] Placeholder screens for **every** sidebar item (no dead buttons — all open real screens)
+- [x] First-launch onboarding flow (Welcome → Create Workspace / Import OpenAPI / Import Collection / Start with Demo Workspace) — default prototype path = Demo Workspace ("Acme API")
+- [x] Workspace switcher (My Workspace, Acme API, iTouch, Project ARC; create/rename/duplicate/delete/export)
+- [x] Keyboard shortcuts foundation (registered once, used everywhere — `lib/shortcuts.ts`)
 
 ### Acceptance criteria
-- [ ] Every sidebar item opens its own real screen
-- [ ] Tabs can open/close/switch; unsaved indicator works
-- [ ] `Cmd/Ctrl + K` opens a working command palette
-- [ ] Workspace switcher switches data context
-- [ ] First launch shows onboarding; subsequent launches skip it
+- [x] Every sidebar item opens its own real screen
+- [x] Tabs can open/close/switch; unsaved indicator works
+- [x] `Cmd/Ctrl + K` opens a working command palette
+- [x] Workspace switcher switches data context
+- [x] First launch shows onboarding; subsequent launches skip it
 
 ---
 
@@ -430,6 +430,7 @@ shell — not the product.
 | Sprint | Status | Notes |
 |---|---|---|
 | Sprint 0 — Foundations | ✅ Built | Monorepo, Electron+react shell, engine/ui/config packages, typecheck+build green, app boots |
+| Sprint 1 — Application Shell & Navigation | ✅ Built | Onboarding, workspace switcher (CRUD), Cmd+K command palette, resizable sidebar, keyboard-shortcut foundation, live tab/home actions |
 | Sprint 1 — App Shell | Not started | |
 | Sprint 2 — Design System | Not started | |
 | Sprint 3 — Engine Core | Not started | |
