@@ -265,7 +265,7 @@ export const useRealtime = create<RealtimeState>()((set, get) => ({
 
   executeGql: (tabId, query, variables) => {
     const current = get().getGql(tabId)
-    let vars: Record<string, string | number | boolean> = {}
+    const vars: Record<string, string | number | boolean> = {}
     if (variables.trim()) {
       try {
         const parsed = JSON.parse(variables) as Record<string, unknown>

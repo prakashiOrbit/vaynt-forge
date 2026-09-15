@@ -12,6 +12,10 @@ release/
 
 # Electron
 apps/desktop/release/
+# electron-builder's buildResources dir — real, committed icon assets
+# (icon.icns/icon.png), not a build output, despite the generic name.
+!apps/desktop/build/
+!apps/desktop/build/**
 
 # Env & secrets
 .env

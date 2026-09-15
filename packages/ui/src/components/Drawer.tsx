@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 
 export interface DrawerProps {
   open: boolean
@@ -21,6 +22,8 @@ export function Drawer({
   side = 'right',
   width = 320,
 }: DrawerProps) {
+  const containerRef = useDialogFocus(open)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -36,11 +39,13 @@ export function Drawer({
     <div className="fixed inset-0 z-50">
       <div className="anim-fade-in absolute inset-0 bg-black/40" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         className={`anim-slide-in-right absolute top-0 bottom-0 ${
           side === 'right' ? 'right-0 border-l' : 'left-0 border-r'
-        } flex flex-col border-border bg-overlay shadow-2xl`}
+        } flex flex-col border-border bg-overlay shadow-2xl outline-none`}
         style={{ width }}
       >
         {title !== undefined && (

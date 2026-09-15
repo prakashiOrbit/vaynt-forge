@@ -246,7 +246,7 @@ export function EnvironmentsPage() {
                         .getState()
                         .saveEnvironment({ ...selectedEnv, phase, isProduction: phase === 'Production' })
                     }}
-                    className="h-6 rounded border border-border bg-bg-input px-1.5 text-[11px] text-text outline-none"
+                    className="h-6 rounded border border-border bg-bg-input px-1.5 text-[11px] text-text outline-none focus-visible:ring-2 focus-visible:ring-accent"
                   >
                     {PHASES.map((p) => (
                       <option key={p} value={p}>

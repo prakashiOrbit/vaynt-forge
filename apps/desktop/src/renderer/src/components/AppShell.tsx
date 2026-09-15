@@ -20,6 +20,7 @@ import { OpenApiPage } from '../pages/OpenApiPage'
 import { MockServersPage } from '../pages/MockServersPage'
 import { ShortcutsPage } from '../pages/ShortcutsPage'
 import { SettingsPage } from '../pages/SettingsPage'
+import { TestsPage } from '../pages/TestsPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 const SCREENS: Record<string, ComponentType> = {
@@ -27,6 +28,7 @@ const SCREENS: Record<string, ComponentType> = {
   'request-builder': RequestBuilderPage,
   requests: RequestsPage,
   collections: CollectionsPage,
+  tests: TestsPage,
   environments: EnvironmentsPage,
   history: HistoryPage,
   websockets: WebSocketsPage,

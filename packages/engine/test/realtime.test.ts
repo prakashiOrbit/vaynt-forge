@@ -147,7 +147,7 @@ test('mock gRPC server-stream pushes lifecycle frames and client-stream reports 
   const batch = await g.clientStream(
     'SubmitOrders',
     [{ sku: 'acme-1', quantity: 1 }, { sku: 'acme-2', quantity: 1 }],
-    (i, total) => progress.push(i)
+    (i, _total) => progress.push(i)
   )
   assert.equal(batch.status, 'OK')
   assert.equal(progress.length, 2)

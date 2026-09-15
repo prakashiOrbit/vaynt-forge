@@ -16,6 +16,7 @@ import {
 } from './grpcServer'
 import { startMockServer, stopMockServer } from './mockServerRuntime'
 import { startLoadTest, cancelLoadTest } from './loadEngine'
+import { checkForUpdates, downloadUpdate, getUpdateStatus, quitAndInstall } from './updater'
 import type { GrpcMetadataArg, MockServer, PerfTestConfig } from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
@@ -24,10 +25,60 @@ const emitTo = (event: Electron.IpcMainInvokeEvent) => (channelId: string, frame
   event.sender.send(IPC.GRPC_FRAME, channelId, { ...frame, channelId, timestamp: Date.now() })
 }
 
+/**
+ * Exactly the `StorageChannel` interface in `shared/types.ts` — the only
+ * `StorageService` methods the renderer is allowed to reach through the
+ * generic `storage:call` dispatcher. `StorageChannel` was previously a
+ * type-only contract (erased at runtime), so the old handler actually
+ * accepted ANY method name that resolved to a function on the service,
+ * including `encrypt`/`decrypt` (would let a compromised renderer decrypt
+ * arbitrary ciphertext or mint fake "encrypted" secrets), `close()`, and
+ * internal main-process-only getters. This allowlist makes that contract a
+ * real runtime boundary, not just a compile-time one.
+ */
+const STORAGE_METHODS = new Set([
+  'listWorkspaces',
+  'createWorkspace',
+  'renameWorkspace',
+  'deleteWorkspace',
+  'snapshot',
+  'createCollection',
+  'updateCollection',
+  'deleteCollection',
+  'createFolder',
+  'updateFolder',
+  'deleteFolder',
+  'saveRequest',
+  'deleteRequest',
+  'saveEnvironment',
+  'deleteEnvironment',
+  'saveGlobalVariable',
+  'deleteGlobalVariable',
+  'saveMockServer',
+  'deleteMockServer',
+  'createOpenApiSpec',
+  'deleteOpenApiSpec',
+  'savePerformanceRun',
+  'deletePerformanceRun',
+  'addHistory',
+  'deleteHistoryEntry',
+  'clearHistory',
+  'saveTestRun',
+  'deleteTestRun',
+  'saveSettings',
+  'addNotification',
+  'updateNotification',
+  'clearNotifications',
+  'secretsSupported',
+])
+
 export function registerIpcHandlers(storage: StorageService): void {
   ipcMain.handle(IPC.PING, () => `pong @ ${new Date().toISOString()}`)
 
   ipcMain.handle(IPC.STORAGE_CALL, async (_event, method: string, ...args: unknown[]) => {
+    if (typeof method !== 'string' || !STORAGE_METHODS.has(method)) {
+      throw new Error(`Unknown storage method: ${method}`)
+    }
     const fn = (storage as unknown as Record<string, unknown>)[method]
     if (typeof fn !== 'function') throw new Error(`Unknown storage method: ${method}`)
     return (fn as (...a: unknown[]) => unknown).apply(storage, args)
@@ -127,4 +178,15 @@ export function registerIpcHandlers(storage: StorageService): void {
   ipcMain.handle(IPC.PERF_CANCEL, async (_event, runId: string) => {
     cancelLoadTest(runId)
   })
+
+  ipcMain.handle(IPC.UPDATE_CHECK, async () => {
+    await checkForUpdates()
+  })
+  ipcMain.handle(IPC.UPDATE_DOWNLOAD, async () => {
+    await downloadUpdate()
+  })
+  ipcMain.handle(IPC.UPDATE_INSTALL, async () => {
+    quitAndInstall()
+  })
+  ipcMain.handle(IPC.UPDATE_GET_STATUS, async () => getUpdateStatus())
 }

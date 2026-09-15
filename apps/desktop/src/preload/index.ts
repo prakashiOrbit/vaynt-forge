@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/ipc'
-import type { VayntForgeApi } from '../shared/types'
+import type { VayntForgeApi, UpdateStatus } from '../shared/types'
 
 const storage = {
   call: (method: string, ...args: unknown[]) => ipcRenderer.invoke(IPC.STORAGE_CALL, method, ...args),
@@ -63,6 +63,17 @@ const api: VayntForgeApi = {
         callback(runId, samples as PerfSample[], durationMs)
       ipcRenderer.on(IPC.PERF_DONE, listener)
       return () => ipcRenderer.removeListener(IPC.PERF_DONE, listener)
+    },
+  },
+  update: {
+    check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK) as Promise<void>,
+    download: () => ipcRenderer.invoke(IPC.UPDATE_DOWNLOAD) as Promise<void>,
+    install: () => ipcRenderer.invoke(IPC.UPDATE_INSTALL) as Promise<void>,
+    getStatus: () => ipcRenderer.invoke(IPC.UPDATE_GET_STATUS) as Promise<UpdateStatus>,
+    onStatus: (callback) => {
+      const listener = (_e: unknown, status: UpdateStatus) => callback(status)
+      ipcRenderer.on(IPC.UPDATE_STATUS, listener)
+      return () => ipcRenderer.removeListener(IPC.UPDATE_STATUS, listener)
     },
   },
 }

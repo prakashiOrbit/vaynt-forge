@@ -200,7 +200,7 @@ export function CommandPalette() {
                 }
               }}
               placeholder="Type a command or search..."
-              className="h-12 flex-1 bg-transparent text-[14px] text-text outline-none placeholder:text-faint"
+              className="h-12 flex-1 bg-transparent text-[14px] text-text outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
             />
             <kbd className="rounded border border-border bg-raised px-1.5 py-0.5 text-[10px] text-faint">
               ESC

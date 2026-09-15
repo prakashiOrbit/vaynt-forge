@@ -8,7 +8,6 @@ import {
   Home,
   Keyboard,
   Layers,
-  LayoutGrid,
   Radio,
   Send,
   Server,
@@ -25,7 +24,6 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { id: 'home', label: 'Home', icon: Home, section: 'main' },
-  { id: 'workspace', label: 'Workspace', icon: LayoutGrid, section: 'main' },
   { id: 'requests', label: 'Requests', icon: Send, section: 'main' },
   { id: 'collections', label: 'Collections', icon: FolderOpen, section: 'main' },
   { id: 'tests', label: 'Tests', icon: FlaskConical, section: 'main' },

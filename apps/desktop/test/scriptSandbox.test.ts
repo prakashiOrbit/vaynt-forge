@@ -72,3 +72,33 @@ test('a thrown error inside the script is reported, not left unhandled', () => {
   const result = runScript("throw new Error('boom')", baseContext())
   assert.match(result.error!, /boom/)
 })
+
+// Sprint 13 security audit: `console.log`/`pm.*` are host-realm closures
+// passed INTO the vm context. Before hardening, a script could walk their
+// prototype chain back to the host's real Function constructor and compile
+// arbitrary code that runs with full Node access — `typeof process ===
+// 'undefined'` (tested above) says nothing about this, since the escape
+// never references the bare `process` identifier at all.
+test('blocks the constructor-chain escape via a passed-in host function', () => {
+  const result = runScript(
+    "const real = console.log.constructor('return process')(); console.log(real.pid)",
+    baseContext()
+  )
+  assert.ok(result.error, 'expected the constructor-chain escape to throw, not succeed')
+  assert.match(result.error!, /constructor is not a function/)
+})
+
+test('blocks the constructor-chain escape via a passed-in pm.* function', () => {
+  const result = runScript(
+    "const real = pm.environment.get.constructor('return process')(); console.log(real.pid)",
+    baseContext()
+  )
+  assert.ok(result.error, 'expected the constructor-chain escape to throw, not succeed')
+  assert.match(result.error!, /constructor is not a function/)
+})
+
+test('blocks dynamic code generation from strings (eval/Function) as defense in depth', () => {
+  const result = runScript("eval('1 + 1')", baseContext())
+  assert.ok(result.error)
+  assert.match(result.error!, /Code generation from strings disallowed/)
+})

@@ -88,7 +88,7 @@ export function DocumentationPage() {
             <select
               value={selectedSpec?.id}
               onChange={(e) => setSelectedSpec(e.target.value)}
-              className="h-7 w-full rounded border border-border bg-bg-input px-1.5 text-[12px] text-text outline-none"
+              className="h-7 w-full rounded border border-border bg-bg-input px-1.5 text-[12px] text-text outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               {openApiSpecs.map((s) => (
                 <option key={s.id} value={s.id}>

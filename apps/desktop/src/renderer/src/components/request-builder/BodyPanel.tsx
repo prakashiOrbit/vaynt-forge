@@ -102,7 +102,7 @@ export function BodyPanel({ draft, update, suggestions }: RequestPanelProps) {
               value={body.source}
               readOnly
               placeholder="No file selected"
-              className="h-8 flex-1 rounded-md border border-border bg-bg-input px-2.5 text-[12px] text-text outline-none placeholder:text-faint"
+              className="h-8 flex-1 rounded-md border border-border bg-bg-input px-2.5 text-[12px] text-text outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-accent"
             />
             <Button
               size="sm"

@@ -21,6 +21,11 @@ export const IPC = {
   PERF_CANCEL: 'perf:cancel',
   PERF_PROGRESS: 'perf:progress',
   PERF_DONE: 'perf:done',
+  UPDATE_CHECK: 'update:check',
+  UPDATE_DOWNLOAD: 'update:download',
+  UPDATE_INSTALL: 'update:install',
+  UPDATE_GET_STATUS: 'update:getStatus',
+  UPDATE_STATUS: 'update:status',
 } as const
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC]

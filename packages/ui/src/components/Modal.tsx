@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { useDialogFocus } from '../hooks/useDialogFocus'
 
 export interface ModalProps {
   open: boolean
@@ -12,6 +13,8 @@ export interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, footer, width = 'max-w-md' }: ModalProps) {
+  const containerRef = useDialogFocus(open)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -34,9 +37,11 @@ export function Modal({ open, onClose, title, children, footer, width = 'max-w-m
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
       <div className="anim-fade-in absolute inset-0 bg-black/50" onClick={onClose} />
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
-        className={`anim-zoom-in relative w-full ${width} overflow-hidden rounded-lg border border-border bg-overlay shadow-2xl`}
+        tabIndex={-1}
+        className={`anim-zoom-in relative w-full ${width} overflow-hidden rounded-lg border border-border bg-overlay shadow-2xl outline-none`}
       >
         {title !== undefined && (
           <div className="flex items-center justify-between border-b border-border px-4 py-3">

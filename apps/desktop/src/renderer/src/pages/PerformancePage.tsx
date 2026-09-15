@@ -76,10 +76,22 @@ export function PerformancePage() {
               <div className="p-3 text-center text-[11px] text-faint">No runs yet — configure one on the right.</div>
             ) : (
               performanceRuns.map((run) => (
-                <button
+                // A row-select control containing its own delete button can't be a
+                // single <button> — nested buttons are invalid HTML and make the
+                // inner one unreachable/ambiguous for assistive tech and keyboard
+                // nav. Using a keyboard-operable div + a real nested button instead.
+                <div
                   key={run.id}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setSelectedId(run.id)}
-                  className={`flex w-full items-center gap-2 border-b border-border px-3 py-2.5 text-left ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedId(run.id)
+                    }
+                  }}
+                  className={`flex w-full cursor-default items-center gap-2 border-b border-border px-3 py-2.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-accent ${
                     run.id === selectedId ? 'bg-bg-active' : 'hover:bg-bg-hover'
                   }`}
                 >
@@ -99,11 +111,12 @@ export function PerformancePage() {
                       e.stopPropagation()
                       void handleDelete(run.id)
                     }}
+                    aria-label={`Delete run ${run.name}`}
                     className="rounded p-1 text-faint hover:bg-bg-hover hover:text-err"
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
-                </button>
+                </div>
               ))
             )}
           </div>

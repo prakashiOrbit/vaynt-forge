@@ -96,7 +96,7 @@ export function VariableInput({
   const masked = props.type === 'password'
 
   return (
-    <div className={`relative min-w-0 overflow-hidden ${className}`}>
+    <div className={`relative min-w-0 overflow-hidden focus-within:ring-2 focus-within:ring-accent ${className}`}>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 flex items-center overflow-hidden px-2 whitespace-pre"

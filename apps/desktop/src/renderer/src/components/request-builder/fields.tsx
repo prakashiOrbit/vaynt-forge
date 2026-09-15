@@ -1,11 +1,15 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 const inputClass =
   'h-7 w-full rounded-md border border-border bg-bg-input px-2.5 text-[12px] text-text outline-none placeholder:text-faint focus:border-accent'
 
-export function FieldLabel({ children }: { children: ReactNode }) {
+export function FieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
   if (!children) return null
-  return <label className="mb-1 block text-[11px] font-medium text-faint">{children}</label>
+  return (
+    <label htmlFor={htmlFor} className="mb-1 block text-[11px] font-medium text-faint">
+      {children}
+    </label>
+  )
 }
 
 export function TextField({
@@ -21,10 +25,12 @@ export function TextField({
   placeholder?: string
   type?: 'text' | 'password'
 }) {
+  const id = useId()
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <input
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -46,10 +52,12 @@ export function NumberField({
   onChange(value: number): void
   disabled?: boolean
 }) {
+  const id = useId()
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <input
+        id={id}
         type="number"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -71,10 +79,12 @@ export function SelectField<T extends string>({
   onChange(value: T): void
   options: { value: T; label: string }[]
 }) {
+  const id = useId()
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <select
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
         className={`${inputClass} appearance-none`}

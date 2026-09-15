@@ -133,7 +133,7 @@ export function WorkspaceSwitcher() {
                             if (e.key === 'Escape') setRenamingId(null)
                           }}
                           autoFocus
-                          className="h-6 min-w-0 flex-1 rounded border border-accent bg-bg-input px-1.5 text-[12px] text-text outline-none"
+                          className="h-6 min-w-0 flex-1 rounded border border-accent bg-bg-input px-1.5 text-[12px] text-text outline-none focus-visible:ring-2 focus-visible:ring-accent"
                         />
                         <span className="flex items-center gap-0.5 text-faint">
                           <button
@@ -228,7 +228,7 @@ export function WorkspaceSwitcher() {
                     }}
                     autoFocus
                     placeholder="Workspace name"
-                    className="h-7 min-w-0 flex-1 rounded-md border border-accent bg-bg-input px-2 text-[12px] text-text outline-none placeholder:text-faint"
+                    className="h-7 min-w-0 flex-1 rounded-md border border-accent bg-bg-input px-2 text-[12px] text-text outline-none placeholder:text-faint focus-visible:ring-2 focus-visible:ring-accent"
                   />
                   <button
                     onClick={() => void submitNew()}

@@ -56,7 +56,7 @@ export function TreeNodeRow({ node, style, dragHandle }: NodeRendererProps<TreeN
             if (e.key === 'Enter') node.submit(e.currentTarget.value)
             if (e.key === 'Escape') node.reset()
           }}
-          className="h-5.5 min-w-0 flex-1 rounded border border-accent bg-bg-input px-1 text-[12px] text-text outline-none"
+          className="h-5.5 min-w-0 flex-1 rounded border border-accent bg-bg-input px-1 text-[12px] text-text outline-none focus-visible:ring-2 focus-visible:ring-accent"
         />
       ) : (
         <span

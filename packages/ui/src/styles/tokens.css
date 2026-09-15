@@ -20,7 +20,10 @@
   /* Text */
   --af-text: #e4e7ea;
   --af-text-muted: #9aa3ad;
-  --af-text-faint: #5d6670;
+  /* WCAG AA (4.5:1) against --af-bg-input, our darkest surface faint text
+     appears on — the original #5d6670 measured 3.34:1, below the 4.5:1 body
+     text threshold. */
+  --af-text-faint: #7b8794;
 
   /* Accent — blue to violet */
   --af-accent: #4f8ef7;
@@ -65,7 +68,9 @@
 
   --af-text: #1a212a;
   --af-text-muted: #475569;
-  --af-text-faint: #94a3b8;
+  /* WCAG AA (4.5:1) against --af-bg — the original #94a3b8 measured only
+     2.35:1, badly failing the 4.5:1 body text threshold. */
+  --af-text-faint: #5f6b7a;
 
   --af-accent: #2f6dde;
   --af-accent-2: #6d5ce0;

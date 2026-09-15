@@ -376,7 +376,7 @@ function tokenize(source: string): { tokens: Token[]; error?: string } {
     }
     if (/[0-9-]/.test(ch)) {
       let j = i
-      while (j < src.length && /[0-9.\-]/.test(src.charAt(j))) j++
+      while (j < src.length && /[0-9.-]/.test(src.charAt(j))) j++
       tokens.push({ type: 'number', value: src.slice(i, j), line })
       i = j
       continue
@@ -755,7 +755,7 @@ function childTypeOf(parentTypeName: string, fieldName: string): string {
   const parent = DEMO_SCHEMA.types.find((t) => t.kind === 'object' && t.name === parentTypeName) as
     | GraphQLObjectType
     | undefined
-  return parent?.fields.find((f) => f.name === fieldName)?.type.replace(/[\[\]!]/g, '') ?? 'String'
+  return parent?.fields.find((f) => f.name === fieldName)?.type.replace(/[[\]!]/g, '') ?? 'String'
 }
 
 /* ------------------------------ public API -------------------------------- */

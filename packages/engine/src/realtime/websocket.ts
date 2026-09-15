@@ -106,7 +106,7 @@ export function createMockWebSocket(url: string, handlers: WsHandlers): MockWsSe
       handlers.onLog('[ping] frame sent')
       schedule(() => {
         if (status !== 'connected') return
-        pushFrame('received', '{\"type\":\"pong\",\"echo\":\"pong\"}', 'json')
+        pushFrame('received', '{"type":"pong","echo":"pong"}', 'json')
         handlers.onLog('[ping] pong received')
       }, 90 + Math.random() * 120)
     },

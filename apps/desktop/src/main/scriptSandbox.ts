@@ -4,17 +4,53 @@ import type { ScriptContext, ScriptResult } from '@vayntforge/engine'
 const TIMEOUT_MS = 1000
 
 /**
+ * Recursively strips every object/function we pass into the vm context down
+ * to a null prototype. This matters because `vm.createContext` isolation
+ * only protects code that both originates and stays inside that context —
+ * any host-realm function or object handed IN (like `pm.environment.get`)
+ * still carries its real Node.js `Function`/`Object` constructor chain with
+ * it. A malicious script can walk that chain to escape: verified locally
+ * that `console.log.constructor('return process')()` returns the *real*
+ * process object from inside an unhardened `vm.createContext({ pm, console
+ * })`, confirming the sandbox's original claim ("no require/process reachable
+ * unless we put them there") was false — passing in these plain closures
+ * already puts them there implicitly, via their constructor chain, not their
+ * own visible API surface. Setting every exposed function/object's prototype
+ * to `null` removes `.constructor` (and `.call`/`.apply`/`.bind`, unused by
+ * this API) without breaking direct invocation, which doesn't need a
+ * prototype. `codeGeneration.strings: false` below is defense in depth for
+ * a different escape shape (script-local `eval`/`Function(str)`), not a fix
+ * for this one — it does NOT block the constructor-chain escape by itself
+ * (also verified locally: `console.log.constructor(...)` still succeeds even
+ * with `codeGeneration.strings: false` alone, since that Function call
+ * compiles and runs in the *host* realm, not the restricted vm context).
+ */
+function harden<T>(value: T): T {
+  if (typeof value === 'function') {
+    Object.setPrototypeOf(value, null)
+    return value
+  }
+  if (value !== null && typeof value === 'object') {
+    Object.setPrototypeOf(value, null)
+    for (const key of Object.keys(value)) {
+      ;(value as Record<string, unknown>)[key] = harden((value as Record<string, unknown>)[key])
+    }
+  }
+  return value
+}
+
+/**
  * Runs a pre-request/post-response script. Uses Node's built-in `vm` module,
  * not `isolated-vm` (the roadmap's stack table pick): isolated-vm is a native
  * module needing prebuilt binaries matched to Electron's exact ABI, which is
  * a real install/CI risk with no upside for what Sprint 6 actually needs —
  * the acceptance criterion is behavior ("blocks require/process/network"),
- * not a specific implementation. `vm.createContext` starts genuinely empty
- * (no `require`, `process`, or fetch/XHR exist unless we put them there, and
- * we don't), and this already runs in the Electron *main* process — a
- * separate OS process from the sandboxed renderer, which is a stronger
- * boundary than same-process isolated-vm would add on top of a vm context
- * anyway. `timeout` guards against runaway loops in the synchronous script.
+ * not a specific implementation. This already runs in the Electron *main*
+ * process — a separate OS process from the sandboxed renderer, which is a
+ * stronger boundary than same-process isolated-vm would add on top of a vm
+ * context anyway. `timeout` guards against runaway loops in the synchronous
+ * script; `harden()` (above) closes the constructor-chain escape; disabling
+ * `codeGeneration.strings` blocks dynamic `eval`/`Function(str)` as well.
  */
 export function runScript(code: string, context: ScriptContext): ScriptResult {
   const logs: string[] = []
@@ -47,7 +83,9 @@ export function runScript(code: string, context: ScriptContext): ScriptResult {
     error: (...args: unknown[]) => logs.push(`[error] ${args.map(stringify).join(' ')}`),
   }
 
-  const sandbox = vm.createContext({ pm, console: sandboxConsole })
+  const sandbox = vm.createContext(harden({ pm, console: sandboxConsole }), {
+    codeGeneration: { strings: false, wasm: false },
+  })
 
   try {
     const script = new vm.Script(code, { filename: 'user-script.js' })

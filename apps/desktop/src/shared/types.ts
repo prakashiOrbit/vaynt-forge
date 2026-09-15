@@ -32,6 +32,16 @@ import type {
   PerfSample,
 } from '@vayntforge/engine'
 
+/** Auto-update status, pushed from `main/updater.ts` over `IPC.UPDATE_STATUS`. */
+export type UpdateStatus =
+  | { state: 'idle' }
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available'; version: string }
+  | { state: 'downloading'; percent: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
+
 /** Plain-object variable scopes — reassembled into a `ResolutionContext` (Maps) main-side. */
 export interface VariableScopes {
   global?: { key: string; value: string }[]
@@ -190,5 +200,15 @@ export interface VayntForgeApi {
     onProgress(callback: (runId: string, batch: PerfSample[]) => void): () => void
     /** Fired once when the run finishes (completed or cancelled). */
     onDone(callback: (runId: string, samples: PerfSample[], durationMs: number) => void): () => void
+  }
+  update: {
+    /** Asks electron-updater to check GitHub Releases for a newer version. */
+    check(): Promise<void>
+    download(): Promise<void>
+    /** Quits and installs the downloaded update. */
+    install(): Promise<void>
+    getStatus(): Promise<UpdateStatus>
+    /** Subscribe to update status changes; returns an unsubscribe function. */
+    onStatus(callback: (status: UpdateStatus) => void): () => void
   }
 }

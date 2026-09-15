@@ -73,6 +73,16 @@ interface NodeProps {
   query: string
 }
 
+// A container's children beyond this many are not mounted until the user
+// explicitly asks for more. Without this, a single large top-level array or
+// object (e.g. a 100k-row API response) mounts one JsonNode + DOM subtree
+// per entry the instant its parent is expanded — for the root node that
+// means immediately on first paint, since depth 0 always starts expanded.
+// Each entry starts collapsed already, but "collapsed" still means a real
+// mounted component and header row, and 100k of those is what actually
+// freezes the renderer, not the depth of any single branch.
+const CHILDREN_PAGE_SIZE = 300
+
 function JsonNode({
   label,
   value,
@@ -87,6 +97,7 @@ function JsonNode({
   const [expanded, setExpanded] = useState(depth < defaultExpandDepth || forceExpandPaths.has(path))
   const [lastExpandSignal, setLastExpandSignal] = useState(expandSignal)
   const [lastCollapseSignal, setLastCollapseSignal] = useState(collapseSignal)
+  const [visibleCount, setVisibleCount] = useState(CHILDREN_PAGE_SIZE)
 
   if (expandSignal !== lastExpandSignal) {
     setLastExpandSignal(expandSignal)
@@ -140,7 +151,7 @@ function JsonNode({
           {entries.length === 0 ? (
             <div className="py-0.5 text-[12px] text-faint">(empty)</div>
           ) : (
-            entries.map(([key, child]) => (
+            entries.slice(0, visibleCount).map(([key, child]) => (
               <JsonNode
                 key={key}
                 label={key}
@@ -154,6 +165,15 @@ function JsonNode({
                 query={query}
               />
             ))
+          )}
+          {entries.length > visibleCount && (
+            <button
+              onClick={() => setVisibleCount((c) => c + CHILDREN_PAGE_SIZE)}
+              className="my-0.5 rounded px-1 text-[11px] text-accent hover:underline"
+            >
+              Show {Math.min(CHILDREN_PAGE_SIZE, entries.length - visibleCount)} more (of{' '}
+              {entries.length - visibleCount} remaining)
+            </button>
           )}
           <div className="py-0.5 text-[12px] text-faint">{Array.isArray(value) ? ']' : '}'}</div>
         </div>

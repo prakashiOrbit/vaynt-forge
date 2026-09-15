@@ -3,13 +3,17 @@
   "productName": "vaynt-forge",
   "version": "0.1.0",
   "description": "Vaynt Forge desktop app (Electron shell + renderer)",
+  "author": "Vaynt Forge",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/*.test.ts",
+    "pack": "electron-vite build && electron-builder --dir",
+    "release": "electron-vite build && electron-builder --mac --win --linux",
+    "release:publish": "electron-vite build && electron-builder --mac --win --linux --publish always"
   },
   "dependencies": {
     "@fontsource/barlow": "^5.0.0",
@@ -19,6 +23,7 @@
     "@vayntforge/engine": "*",
     "@vayntforge/sqlite": "*",
     "@vayntforge/ui": "*",
+    "electron-updater": "^6.8.9",
     "lucide-react": "^1.46.0",
     "react": "^19.3.0",
     "react-arborist": "^3.16.0",
@@ -33,6 +38,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",

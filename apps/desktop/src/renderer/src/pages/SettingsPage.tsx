@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import {
   BadgeCheck,
   Database,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Button, ConfirmDialog, toast } from '@vayntforge/ui'
 import type { CertificateEntry, ThemePreference } from '@vayntforge/engine'
+import type { UpdateStatus } from '../../../shared/types'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
 
@@ -74,6 +75,25 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange(v: boolean):
   )
 }
 
+function updateStatusLabel(status: UpdateStatus): string {
+  switch (status.state) {
+    case 'idle':
+      return 'Not checked yet this session.'
+    case 'checking':
+      return 'Checking GitHub Releases for a newer version…'
+    case 'available':
+      return `Version ${status.version} is available.`
+    case 'not-available':
+      return "You're on the latest version."
+    case 'downloading':
+      return `Downloading version update — ${status.percent}%.`
+    case 'downloaded':
+      return `Version ${status.version} downloaded — restart to install.`
+    case 'error':
+      return `Update check failed: ${status.message}`
+  }
+}
+
 const numberInput = 'h-7 w-24 rounded border border-border bg-bg-input px-2 text-right font-mono text-[12px] text-text'
 const textInput = 'h-7 rounded border border-border bg-bg-input px-2 font-mono text-[12px] text-text'
 
@@ -89,6 +109,12 @@ export function SettingsPage() {
   const [confirmClearHistory, setConfirmClearHistory] = useState(false)
   const [certName, setCertName] = useState('')
   const [certPem, setCertPem] = useState('')
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
+
+  useEffect(() => {
+    void window.vayntforge.update.getStatus().then(setUpdateStatus)
+    return window.vayntforge.update.onStatus(setUpdateStatus)
+  }, [])
 
   const patch = (p: Partial<typeof settings>) => void saveSettings(workspaceId, { ...settings, ...p })
   const patchEditor = (p: Partial<typeof settings.editor>) => patch({ editor: { ...settings.editor, ...p } })
@@ -248,7 +274,11 @@ export function SettingsPage() {
                   {settings.certificates.map((c) => (
                     <div key={c.id} className="flex items-center justify-between border-b border-border px-3 py-2 last:border-b-0">
                       <span className="text-[12px] text-text">{c.name}</span>
-                      <button onClick={() => removeCertificate(c.id)} className="text-faint hover:text-err">
+                      <button
+                        onClick={() => removeCertificate(c.id)}
+                        aria-label={`Remove certificate ${c.name}`}
+                        className="text-faint hover:text-err"
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -353,6 +383,31 @@ export function SettingsPage() {
               <h2 className="mb-3 text-[14px] font-semibold text-text">About</h2>
               <Row label="Version">
                 <span className="font-mono text-[12px] text-text">{window.vayntforge.app.version}</span>
+              </Row>
+              <Row label="Updates" description={updateStatusLabel(updateStatus)}>
+                {updateStatus.state === 'available' && (
+                  <Button size="sm" onClick={() => void window.vayntforge.update.download()}>
+                    Download update
+                  </Button>
+                )}
+                {updateStatus.state === 'downloaded' && (
+                  <Button size="sm" onClick={() => void window.vayntforge.update.install()}>
+                    Restart &amp; install
+                  </Button>
+                )}
+                {(updateStatus.state === 'idle' ||
+                  updateStatus.state === 'not-available' ||
+                  updateStatus.state === 'error') && (
+                  <Button size="sm" variant="outline" onClick={() => void window.vayntforge.update.check()}>
+                    Check for updates
+                  </Button>
+                )}
+                {updateStatus.state === 'checking' && (
+                  <span className="text-[12px] text-faint">Checking…</span>
+                )}
+                {updateStatus.state === 'downloading' && (
+                  <span className="text-[12px] text-faint">Downloading… {updateStatus.percent}%</span>
+                )}
               </Row>
               <p className="mt-3 text-[12px] text-muted">
                 Vaynt Forge — a professional desktop API engineering workbench. Everything runs locally; your data stays on this device.

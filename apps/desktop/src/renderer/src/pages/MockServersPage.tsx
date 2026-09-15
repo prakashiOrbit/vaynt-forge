@@ -186,6 +186,7 @@ export function MockServersPage() {
                     </button>
                     <button
                       onClick={() => removeEndpoint(ep.id)}
+                      aria-label={`Remove endpoint ${ep.method} ${ep.path}`}
                       className="rounded p-1 text-muted hover:bg-bg-hover hover:text-err"
                     >
                       <X className="h-3 w-3" />
