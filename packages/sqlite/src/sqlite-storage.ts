@@ -9,6 +9,7 @@ import type {
   FolderPatch,
   HistoryInput,
   NotificationDraft,
+  OpenApiSpecDraft,
 } from '../../engine/src/storage/provider'
 import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../../engine/src/types/workspace'
 import type { RequestModel } from '../../engine/src/types/request'
@@ -16,6 +17,7 @@ import type { Environment, Variable } from '../../engine/src/types/variables'
 import type { MockServer } from '../../engine/src/types/mock'
 import type { AppSettings } from '../../engine/src/types/settings'
 import type { AppNotification, NotificationPatch } from '../../engine/src/types/notifications'
+import type { OpenApiSpec } from '../../engine/src/openapi/types'
 import { generateId } from '../../engine/src/util/id'
 
 export interface SQLiteStorageOptions {
@@ -31,6 +33,7 @@ type Table =
   | 'environments'
   | 'variables'
   | 'mock_servers'
+  | 'openapi_specs'
   | 'history'
   | 'test_runs'
   | 'settings'
@@ -69,6 +72,7 @@ export class SQLiteStorage implements StorageProvider {
       CREATE TABLE IF NOT EXISTS environments  (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS variables     (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, scope TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS mock_servers (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS openapi_specs (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS history       (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS test_runs     (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS settings      (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, data TEXT NOT NULL);
@@ -79,6 +83,7 @@ export class SQLiteStorage implements StorageProvider {
       CREATE INDEX IF NOT EXISTS idx_environments_ws  ON environments(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_variables_ws     ON variables(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_mock_ws          ON mock_servers(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_openapi_ws       ON openapi_specs(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_history_ws       ON history(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_testruns_ws      ON test_runs(workspace_id);
       CREATE INDEX IF NOT EXISTS idx_notifications_ws ON notifications(workspace_id);
@@ -180,7 +185,7 @@ export class SQLiteStorage implements StorageProvider {
         this.removeWhere('folders', 'collection_id', col.id)
         this.remove('collections', col.id)
       }
-      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'history', 'test_runs', 'settings', 'notifications'] as Table[]) {
+      for (const t of ['requests', 'environments', 'variables', 'mock_servers', 'openapi_specs', 'history', 'test_runs', 'settings', 'notifications'] as Table[]) {
         this.removeWhere(t, 'workspace_id', id)
       }
       this.remove('workspaces', id)
@@ -343,6 +348,22 @@ export class SQLiteStorage implements StorageProvider {
   }
   deleteMockServer(id: string): void {
     this.remove('mock_servers', id)
+  }
+
+  // ── OpenAPI specs ─────────────────────────────────────────
+  listOpenApiSpecs(workspaceId: string): OpenApiSpec[] {
+    return this.all<OpenApiSpec>('openapi_specs', 'workspace_id', workspaceId).sort(
+      (a, b) => b.updatedAt - a.updatedAt
+    )
+  }
+  createOpenApiSpec(input: OpenApiSpecDraft): OpenApiSpec {
+    const now = Date.now()
+    const spec: OpenApiSpec = { ...input, id: generateId('spec'), createdAt: now, updatedAt: now }
+    this.write('openapi_specs', spec.id, spec, { workspaceId: spec.workspaceId })
+    return spec
+  }
+  deleteOpenApiSpec(id: string): void {
+    this.remove('openapi_specs', id)
   }
 
   // ── History ───────────────────────────────────────────────

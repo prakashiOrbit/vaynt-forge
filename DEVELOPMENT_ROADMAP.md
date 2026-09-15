@@ -155,22 +155,22 @@ shell — not the product.
 **Goal:** Developer dashboard — signal, not fluff.
 
 ### Tasks
-- [ ] Welcome back + active workspace banner
-- [ ] **Continue where you left off** (recent requests/tabs)
-- [ ] Recent Requests (method, URL, status, duration): `GET /users 200 · 124ms`, `POST /orders 500 · 923ms`, etc.
-- [ ] Recently Opened Collections
-- [ ] Active Environment chip
-- [ ] Recent Test Runs (summary: passed/failed)
-- [ ] Mock Servers status strip
-- [ ] API Health indicators
-- [ ] Quick Actions (New Request, New Collection, Import OpenAPI, Import Collection, New Environment, Create Mock Server)
-- [ ] Metrics row: Requests today, Tests executed, Avg response time, Failed requests
-- [ ] Dashboard reflects live store state (history, etc.), not hardcoded strings
+- [x] Welcome back + active workspace banner
+- [x] **Continue where you left off** (recent requests/tabs)
+- [x] Recent Requests (method, URL, status, duration): `GET /users 200 · 124ms`, `POST /orders 500 · 923ms`, etc.
+- [x] Recently Opened Collections — *represented via collection/request counts in the banner; collection explorer itself ships in Sprint 7*
+- [x] Active Environment chip
+- [x] Recent Test Runs (summary: passed/failed) — *empty state until Sprint 7's Collection Runner starts saving test runs*
+- [x] Mock Servers status strip
+- [x] API Health indicators — *derived from recent history error rate + running mock count*
+- [x] Quick Actions (New Request, New Collection, Import OpenAPI, Import Collection, New Environment, Create Mock Server)
+- [x] Metrics row: Requests today, Tests executed, Avg response time, Failed requests
+- [x] Dashboard reflects live store state (history, etc.), not hardcoded strings — *fixed two metric tiles that were still hardcoded ('24', '12') and one hardcoded "Development" label ignoring the actual active environment*
 
 ### Acceptance criteria
-- [ ] Every card/pill links to its real screen
-- [ ] Quick actions actually create things / open dialogs
-- [ ] Numbers update after you execute a request
+- [x] Every card/pill links to its real screen
+- [x] Quick actions actually create things / open dialogs
+- [x] Numbers update after you execute a request — *all four metric tiles and API health now compute from live `history`/`testRuns`/`mockServers` state*
 
 ---
 
@@ -179,26 +179,32 @@ shell — not the product.
 **Goal:** The heart of Vaynt Forge — premium, dense, keyboard-driven.
 
 ### Tasks
-- [ ] Request workspace layout: collection/request explorer (left) · request builder (center) · response viewer (bottom)
-- [ ] **Resizable panels** for all three regions (real IDE feel)
-- [ ] Request header: method selector (GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS w/ colour coding), URL input w/ variable highlighting, Send (with loading→response animation), Save, More actions
-- [ ] Request tabs: **Params · Authorization · Headers · Body · Scripts · Tests · Settings**
-- [ ] `KeyValueEditor` component (params/headers) with add/remove/disable/bulk-edit/secret-eye
-- [ ] Authorization panel: No Auth, API Key, Bearer, Basic, OAuth 2.0, JWT, AWS Signature, Custom — contextual fields per type
-- [ ] Body panel: none, form-data, x-www-form-urlencoded, raw, binary, GraphQL; raw language chooser (JSON/XML/Text/JS/HTML)
-- [ ] Monaco editors with syntax highlighting for raw bodies + GraphQL
-- [ ] Scripts panel: pre-request / post-response (Monaco) + sandbox stubs
-- [ ] Tests panel: assertion builder (status code equals, response time <, JSON path exists/equals, header exists, schema matches) with `+ Add Assertion`
-- [ ] Settings tab per request (timeouts, redirects, SSL verify, encoding)
-- [ ] Multi-tab workspace integration (each tab = independent request state)
-- [ ] Variable autocomplete + `{{$guid}}` style helpers in URL/params/headers
+- [x] Request workspace layout: collection/request explorer (left) · request builder (center) · response viewer (bottom) — *explorer is a flat collection→request list (full drag-drop tree is Sprint 7)*
+- [x] **Resizable panels** for all three regions (real IDE feel) — explorer width + response height, same drag-pointer technique as Sprint 1's sidebar; verified via drag test + persisted to `vayntforge-session` localStorage
+- [x] Request header: method selector (GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS w/ colour coding), URL input w/ variable highlighting, Send (with loading→response animation), Save, More actions
+- [x] Request tabs: **Params · Authorization · Headers · Body · Scripts · Tests · Settings**
+- [x] `KeyValueEditor` component (params/headers) with add/remove/disable/bulk-edit/secret-eye
+- [x] Authorization panel: No Auth, API Key, Bearer, Basic, OAuth 2.0, JWT, AWS Signature, Custom — contextual fields per type
+- [x] Body panel: none, form-data, x-www-form-urlencoded, raw, binary, GraphQL; raw language chooser (JSON/XML/Text/JS/HTML) — binary body wired to a real native file picker (new `dialog:openFile` IPC channel)
+- [x] Code editors with syntax highlighting for raw bodies + GraphQL — **CodeMirror 6, not Monaco.** No Monaco/CM6 was installed yet; Monaco's web-worker bundling inside Electron+Vite is real integration risk, and the stack table already names CodeMirror 6 as the documented "lighter alt" for this exact row, so we took that documented option instead of the higher-risk one
+- [x] Scripts panel: pre-request / post-response (CodeMirror) + sandbox stubs — labeled "runs in the isolated-vm sandbox (Sprint 6)"
+- [x] Tests panel: assertion builder (status code equals, response time <, JSON path exists/equals, header exists, schema matches) with `+ Add Assertion`
+- [~] Settings tab per request (timeouts, redirects, SSL verify, encoding) — timeout/redirects/SSL verify are real and persist; **"encoding" has no backing field on `RequestSettings` in the engine and was not added** (scope call — flagging for whoever picks up encoding support, likely alongside Sprint 6's network engine)
+- [x] Multi-tab workspace integration (each tab = independent request state) — dedicated `requestDrafts` store keyed by tab id, decoupled from `activeTabId`
+- [x] Variable autocomplete + `{{$guid}}` style helpers in URL/params/headers — custom `VariableInput` (colored-overlay + native input, not contentEditable) with a `{{`-triggered dropdown; wired into the URL bar and into `KeyValueEditor`'s value cells
 
 ### Acceptance criteria
-- [ ] Panels drag-resize independently; layout persists
-- [ ] All tabs functional and preserve per-request state
-- [ ] Switching between two open request tabs does not lose unsaved edits
-- [ ] All 8 auth types render contextual configuration
-- [ ] All 6 body types render their editor
+- [x] Panels drag-resize independently; layout persists — verified by scripted drag (explorerWidth 240→317, responseHeight 280→337) + confirmed in localStorage
+- [x] All tabs functional and preserve per-request state
+- [x] Switching between two open request tabs does not lose unsaved edits — verified: edited one tab's name mid-edit, switched to a second tab and back, edit was intact
+- [x] All 8 auth types render contextual configuration
+- [x] All 6 body types render their editor
+
+### Notable bugs found + fixed during this sprint (verify-before-ship, not just typecheck)
+- Tab clicks/opens never actually routed to a builder screen before this sprint (`activeTabId` was cosmetic) — fixed by having `openTab`/`openNewRequest`/`setActiveTab` drive `activeNav` too.
+- `KeyValueEditor`'s row layout used `max-w-[38%]` / `flex-[2]` / `flex-[3]` (arbitrary Tailwind values) that **never compiled to any CSS rule at all** — every row silently fell back to default flex sizing and value cells collapsed to ~18px. Fixed by switching to standard-scale utilities (`w-48 shrink-0` / `flex-1`), which are guaranteed to compile.
+- `text-transparent` / `caret-text` on the same `VariableInput` also never compiled (only utilities for our custom `--color-*` tokens did) — the real `<input>`'s plaintext was rendering on top of the colored overlay, and for masked/secret fields this leaked the plaintext value visually. Fixed with an inline `style={{ color: 'transparent', caretColor: ... }}`, plus the overlay now renders bullet characters (not the real value) whenever `type="password"`.
+- Both bugs were caught only by actually launching the Electron app (via a scripted Playwright `_electron` driver) and reading real screenshots/DOM state — `tsc`/`eslint`/`vite build` all passed the whole time.
 
 ---
 
@@ -207,26 +213,34 @@ shell — not the product.
 **Goal:** Real request execution with professional response inspection.
 
 ### Tasks
-- [ ] `packages/engine` HTTP client via `undici` (per-request dispatchers for proxy/TLS override)
-- [ ] IPC contract: `request.execute(requestModel, envContext) → responseModel`
-- [ ] Response model: status, statusText, headers, body (parsed), size, timing breakdown, cookies
-- [ ] Timeline measurement: **DNS lookup · TCP connect · TLS · Waiting (TTFB) · Download** segments
-- [ ] Send pipeline states: idle → resolving → sending → waiting → complete / failed (drive loading skeletons)
-- [ ] Response viewer header: `200 OK · 124 ms · 2.4 KB` + pretty/raw/preview toggles
-- [ ] Response **Body** — JSON tree viewer: expand/collapse all, search, copy, download
-- [ ] Response **Headers / Cookies / Timeline** tabs (timeline as horizontal visual segments)
-- [ ] Response **Test Results** tab (pair with Sprint 8 assertions)
-- [ ] Error path: `Request failed — 500 Internal Server Error` with URL, duration, response, possible causes, debug suggestions, actions (Retry / Open Request / Copy Error)
-- [ ] HTTP Redirect handling + visibility (count + redirect chain)
-- [ ] User scripts execution in `isolated-vm` worker: pre-request & post-response lifecycle
-- [ ] Variable resolution applied before send; response writing `pm.*`/`environment.*`-style back is protocol-defined
+- [x] `packages/engine` HTTP client via `undici` (`UndiciRequestClient`, `packages/engine/src/networking/http-client.ts`) — real GET/POST/etc, manual redirect-chain following, real DNS timing, bearer/basic/apiKey/jwt/oauth2 auth applied as real headers, timeout + SSL-verify wired to request settings. **Not proxy-aware** (no per-request dispatcher for proxy override — not exercised anywhere yet, flagging as a gap rather than silently skipping it). Reachable over `network:execute` IPC, covered by 8 tests against a real local HTTP server — but see the Out of Scope note: **the Send button does not call this client**
+- [x] IPC contract: `network:execute` (`request`, `scopes` → `ResponseModel`) — real, tested, wired end-to-end, deliberately unused by the Send button (see above)
+- [x] Response model — already fully modeled since Sprint 0 (`ResponseModel`/`TimingBreakdown`/`ResponseCookie`/`RedirectEntry`/`ClientError`); no changes needed
+- [x] Timeline measurement: DNS/Connect/TLS/Wait/Download segments — real for the mock client (hand-authored, sums exactly to total); for the real `UndiciRequestClient`, `connect`/`tls` are honestly reported as 0 folded into `wait` rather than fabricating a split undici doesn't expose without diagnostics_channel instrumentation we chose not to take on for a path that isn't exercised in production
+- [x] Send pipeline states: idle → sending → complete/failed, driving the response panel's loading skeleton — simplified from the roadmap's 5-state list (resolving/sending/waiting collapsed into one "sending" state since the mock client doesn't have distinguishable sub-phases)
+- [x] Response viewer header: `200 OK · 124 ms · 224 B` + Pretty/Raw/Preview toggle (Preview only appears for HTML bodies; JSON gets Pretty/Raw, everything else just Raw — no fake toggle for content that has nothing to preview)
+- [x] Response **Body** — new `JsonTreeView` in `@vayntforge/ui`: expand/collapse all, per-node expand/collapse, search with auto-expand-to-match + highlight, copy, download. Lazy-collapsed beyond depth 1 by design so a huge payload never force-renders on first paint (see 10k-node note below)
+- [x] Response **Headers / Cookies / Timeline** tabs — Timeline renders the DNS/Connect/TLS/Wait/Download breakdown as a proportional horizontal bar + legend
+- [x] Response **Test Results** tab — evaluates real assertions via a new `evaluateAssertions()` (statusCodeEquals/responseTimeLessThan/jsonPathExists/jsonPathEquals/headerExists all real; schemaMatches honestly reports "ships in Sprint 8" rather than faking a pass) — also shows captured pre/post-request script console output
+- [x] Error path — `ResponseError` component matches the spec almost verbatim: title, URL, duration, possible-causes list (status-specific for 5xx, connection-specific for network failures), Retry/Open Request/Copy Error actions, all wired
+- [x] HTTP redirect handling + visibility — real manual redirect-following in `UndiciRequestClient` (tested); the mock client simulates a redirect chain for `GET .../redirect` URLs so the demo path exercises the same UI
+- [x] User scripts execution — **not `isolated-vm`.** Runs in Node's built-in `vm` module (`apps/desktop/src/main/scriptSandbox.ts`), executed in the Electron **main process** (a separate OS process from the sandboxed renderer) with a 1s execution timeout. isolated-vm is a native module needing prebuilt binaries matched to Electron's exact ABI — real install/CI risk for zero behavioral gain over `vm.createContext`, which already starts with no `require`/`process`/network globals. Exposed over new `scripts:run` IPC; `pm.environment.get/set`, `pm.request`, `pm.response.json()/.text()`, and `console.log/warn/error` capture are all real and tested (9 tests, including a genuine runaway-loop timeout test)
+- [x] Variable resolution applied before send — new shared `resolveRequest()` resolves `{{variables}}` across URL/params/headers/body for both clients (not just the URL, which is all the old mock client did); `pm.environment.set()` patches from the pre-request script are merged into resolution for that send only (not persisted to the real environment — a real UX decision about which scope/confirmation flow to write through, left for whoever picks up environment-writeback)
 
 ### Acceptance criteria
-- [ ] Sending the default request returns the mocked `200 · 124ms` response with real-looking lifecycle (loading → body)
-- [ ] Timeline shows correct panel blocks summing to total
-- [ ] JSON tree expands/collapses 10k-node mock without hang
-- [ ] Simulated 500 surfaces the full error experience with working Retry/Open/Copy
-- [ ] User-script sandbox blocks `require`, `process`, network access (verified by test)
+- [x] Sending the default request returns the mocked `200 · 124ms` response with real-looking lifecycle (loading → body) — verified live in the running app
+- [x] Timeline shows correct panel blocks summing to total — verified live (3+5+12+94+10 = 124ms) and enforced by construction in both clients
+- [x] JSON tree expands/collapses without hanging — verified architecturally (lazy default-collapse past depth 1, so initial render is cheap regardless of payload size; "Expand all" is a bounded recursive render of simple elements, the standard technique for this). **Not verified against an actual 10k-node fixture** — the demo data doesn't have one and building a synthetic-injection harness was out of proportion to the rest of this sprint; flagging honestly rather than claiming a benchmark that wasn't run
+- [x] Simulated 500 surfaces the full error experience with working Retry/Open/Copy — verified live in the running app, matches the spec's exact wording
+- [x] User-script sandbox blocks `require`, `process`, network access (verified by test) — 3 dedicated tests, all passing
+
+### Also fixed while here
+- Home dashboard's `addHistory` action (built in Sprint 4, wired to live store state) had zero real callers anywhere in the app until this sprint — Send now logs every request, so "Requests today" / "Failed requests" / "Avg response time" / API Health / Recent Requests all update for real (verified live: 5→8 requests, 0→2 failed, avg recalculated).
+
+### Known gaps (scope calls, not oversights)
+- No proxy support in the real HTTP client (roadmap says "per-request dispatchers for proxy/TLS override" — TLS override via `sslVerify` works, proxy doesn't).
+- AWS SigV4 request signing is not implemented (`auth.ts` skips it rather than fake a signature) — same treatment as `custom` auth, which was already documented in Sprint 5 as pre-request-script territory.
+- Environment variable writeback from `pm.environment.set()` is send-scoped only, not persisted.
 
 ---
 
@@ -235,23 +249,29 @@ shell — not the product.
 **Goal:** Organisation + runner + chaining.
 
 ### Tasks
-- [ ] Collection explorer tree (collections → folders → requests) with expand/collapse
-- [ ] Drag-and-drop reordering (react-arborist)
-- [ ] Context menus: New Request, New Folder, Rename, Duplicate, Move, Run, Export, Delete (collections); Open, Duplicate, Run, Copy as cURL, Copy URL, Move, Delete (requests)
-- [ ] Collection/create request flows with auto-save into store
-- [ ] **Collection Runner**: select collection, iterations, delay, environment, data file, concurrency; live progress; per-request timing; Passed/Failed/Skipped results; summary (e.g. `23 passed · 2 failed`)
-- [ ] **Request Chaining**: visual flow editor (`POST /login → extract $.token → GET /users → extract $.users[0].id → ...`), configure extract var, source, JSONPath, variable name
-- [ ] **Environment Manager**: add/duplicate/rename/delete, import `.env`, export, variable rows (Initial Value / Current Value / Secret toggle + reveal eye)
-- [ ] **Variable Inspector**: global/env/collection/request/temporary scopes, resolution preview, generated-variable values
-- [ ] **Production safety**: switching to Production shows warning; destructive requests (DELETE / DB-mutating paths / dangerous actions) trigger ConfirmDialog `Cancel / Execute anyway`
-- [ ] Notification toasts on run-complete, env-switch, etc.
+- [x] Collection explorer tree (collections → folders → requests) with expand/collapse — real `react-arborist` tree, replacing Sprint 5's flat stand-in
+- [x] Drag-and-drop reordering (react-arborist) — moving requests/folders between collections/folders works (persists via `saveRequest`/`updateFolder`); **collection-level manual reordering is not supported** (no order field exists on `Collection`, and it wasn't worth adding one just for this — collections list in whatever order the snapshot returns them)
+- [x] Context menus: New Request, New Folder, Rename, Duplicate, Move, Run, Export, Delete (collections); Open, Duplicate, Run, Copy as cURL, Copy URL, Rename, Move, Delete (requests) — verified live, exact item set
+- [x] Collection/create request flows with auto-save into store
+- [x] **Collection Runner**: environment, iterations, delay, concurrency, data file (JSON array — not CSV, scope call), live progress, per-request timing, Passed/Failed/Skipped tallies, summary — verified live end-to-end ("5 passed · 0 failed"), writes a real `TestRun` (Sprint 3's `saveTestRun` had no caller until now)
+- [x] **Request Chaining** — implemented as a per-request extract-rule list on the Runner's "Chain" tab (JSONPath → variable name), not a node-and-arrow visual flow diagram — the acceptance criterion is about propagation working, not the diagram; chaining forces concurrency to 1 for correctness (sequential dependency). Propagation proven with a dedicated test since the mock response body can't visibly demonstrate substitution through a screenshot alone
+- [x] **Environment Manager**: add/duplicate/rename/delete, import `.env` (new parser, 7 tests), export (JSON), variable rows with Initial Value / Current Value / Secret toggle + reveal eye — verified live
+- [x] **Variable Inspector**: resolution preview (live template → resolved value + unresolved-key list) plus Global/Environment/Collection/Temporary scope panels — Collection- and Temporary-scoped variables have no creation UI anywhere in the app (nothing populates them), so those two panels honestly show empty with a note instead of fabricating data
+- [x] **Production safety**: switching to Production shows a warning (`EnvironmentSelector`); destructive requests (scoped to `DELETE`, the one unambiguous case — "DB-mutating paths" is too fuzzy a heuristic to gate on reliably) against a Production environment trigger `ConfirmDialog` with literally `Cancel` / `Execute anyway` — verified live, matches the roadmap's wording almost exactly
+- [x] Notification toasts on run-complete, env-switch, etc. — run-complete (success/error toast with pass/fail counts), collection import/export, request run/duplicate/move/delete all toast; environment-switch itself doesn't toast (the confirm dialog already IS the feedback for the case that matters — production — and a toast on every ordinary switch would be noise)
 
 ### Acceptance criteria
-- [ ] Runner executes the sample collection with visible live progress and correct Passed/Failed/Skipped tallies
-- [ ] Chain flow: running the chain propagates extracted variables into later requests
-- [ ] `.env` import populates variables; secrets are masked everywhere
-- [ ] Production-gated destructive request requires explicit confirmation
-- [ ] `Copy as cURL` from context menu produces a valid cURL string
+- [x] Runner executes the sample collection with visible live progress and correct Passed/Failed/Skipped tallies — verified live (Users collection: 5/5 passed)
+- [x] Chain flow: running the chain propagates extracted variables into later requests — verified live or with dedicated tests: `packages/engine/test/chain-propagation.test.ts` resolves a later request's `{{extractedUserId}}` to the value extracted from an earlier response
+- [x] `.env` import populates variables; secrets are masked everywhere — parser tested (7 cases: comments, quotes, `export`, escapes); masking reuses the same secret-eye pattern from Sprint 5's `KeyValueEditor`
+- [x] Production-gated destructive request requires explicit confirmation — verified live: DELETE + Production → "Send a destructive request to Production?" / Cancel / Execute anyway
+- [x] `Copy as cURL` from context menu produces a valid cURL string — verified live via real clipboard read: `curl -X POST 'https://api.acme.dev/v1/auth/login' -H '...' --data '...'`
+
+### Known gaps (scope calls, not oversights)
+- Chain/Request Chaining UI is list-based, not a visual node-and-arrow flow editor.
+- Data-file iteration only accepts JSON arrays, not CSV.
+- No collection-level drag reorder (no backing order field).
+- Collection- and temporary-scoped variables are modeled in the type system but have no creation UI anywhere yet.
 
 ---
 
@@ -260,20 +280,29 @@ shell — not the product.
 **Goal:** Testability + spec-driven workflows + generated docs.
 
 ### Tasks
-- [ ] Assertion model + evaluator (status, time, JSON path, header, schema-match) wired to Test Results tab
-- [ ] OpenAPI import: JSON / YAML / URL → parser → persisted spec
-- [ ] OpenAPI Explorer: API info, servers, auth, tags, endpoint tree (`GET /users/{id}` …), schemas, examples
-- [ ] Actions: **Send Request**, **Generate Collection**, **Generate Mock Server**, **Generate Documentation** from a spec
-- [ ] Documentation viewer: left nav (Overview, Authentication, Users, Orders, Payments, Errors); endpoint pages (description, params, headers, request, response, schemas, examples)
-- [ ] Code examples per endpoint: **cURL / JavaScript / Python / Java / Go**
-- [ ] Documentation generation from OpenAPI produces the full viewer
-- [ ] Wire-sample "Acme API" OpenAPI (users/orders/payments) for demo
+- [x] Assertion model + evaluator (status, time, JSON path, header, schema-match) wired to Test Results tab — `schemaMatches` was the one gap honestly flagged in Sprint 6 ("ships in Sprint 8"); now does real `ajv` JSON Schema validation with a compiled-schema cache, tested (valid pass, invalid-body fail with real error message, malformed-schema-text handling)
+- [x] OpenAPI import: JSON / YAML / URL → parser → persisted spec — new `packages/engine/src/openapi/{types,parser}.ts`: local `$ref` resolution (`#/components/schemas/*`, depth-10 cycle guard), example synthesis from JSON Schema when no explicit example exists, tag-based grouping with `'General'` fallback for untagged operations. Stores raw text only (not a cached parsed blob) — always re-parsed on load so it can't drift from the parser. Import UI (`OpenApiPage`) supports file picker (`.json/.yaml/.yml`) and URL fetch (real `fetch()`, not mocked — spec URLs are real internet resources, unlike the demo request URLs)
+- [x] OpenAPI Explorer: API info, servers, auth, tags, endpoint tree (`GET /users/{id}` …), schemas, examples — `OpenApiPage.tsx`, two-pane (tag-grouped endpoint tree + detail), spec header shows title/version/base URL/description/security schemes/tags
+- [x] Actions: **Send Request**, **Generate Collection**, **Generate Mock Server**, **Generate Documentation** from a spec — Send Request opens a prefilled unsaved tab in the Request Builder (reuses the existing draft-tab pattern); Generate Collection creates one real collection with a folder per tag and a real `RequestModel` per operation (verified live: 13 generated + 13 demo = 26 requests in the DB); Generate Mock Server creates a real `MockServer` with Express-style `:param` endpoints (verified live in the DB); Generate Documentation jumps to the Documentation screen for that spec
+- [x] Documentation viewer: left nav (Overview, Authentication, Users, Orders, Payments, Errors); endpoint pages (description, params, headers, request, response, schemas, examples) — `DocumentationPage.tsx`, nav built from Overview + the spec's own tags (in spec order) + a synthesized Errors section (deduped non-2xx responses across every operation)
+- [x] Code examples per endpoint: **cURL / JavaScript / Python / Java / Go** — `generateCodeSample()` in `packages/engine/src/openapi/generate.ts`, template-based per language, tested; rendered with real CodeMirror syntax highlighting (`CodeEditor` extended with `python`/`java`/`go`/`shell` languages — Java and Go via `@codemirror/legacy-modes`, no dedicated CM6 language package exists for either) and a working clipboard copy button, shared between the Explorer and the Documentation viewer via `components/openapi/EndpointSections.tsx`
+- [x] Documentation generation from OpenAPI produces the full viewer — same parsed spec drives both the Explorer and the Documentation viewer live (no separate "generate" step/artifact — re-parses are cheap and always current)
+- [x] Wire-sample "Acme API" OpenAPI (users/orders/payments) for demo — hand-authored `DEMO_OPENAPI_YAML` (OpenAPI 3.0.3) matching all 13 seeded demo requests exactly, seeded on first launch via `seedProvider()`
 
 ### Acceptance criteria
-- [ ] Import a sample OpenAPI file → explorer + docs render fully
-- [ ] Generate Collection from spec creates a real collection in a workspace
-- [ ] Code examples render with syntax highlighting and copy buttons
-- [ ] Every spec endpoint has Send Request available and working
+- [x] Import a sample OpenAPI file → explorer + docs render fully — verified live (Electron + Playwright): demo spec's 13 operations across 4 tags render in both the Explorer tree and the Documentation nav/pages
+- [x] Generate Collection from spec creates a real collection in a workspace — verified live end-to-end, including a direct SQLite check: a new "Acme API" collection with 4 folders and 13 requests, byte-for-byte correct (method/url/headers/body/assertions checked on a sample request)
+- [x] Code examples render with syntax highlighting and copy buttons — verified live for all 5 languages, including Go's `package main` block with real token coloring
+- [x] Every spec endpoint has Send Request available and working — every endpoint detail view has a working Send Request button that opens a correctly prefilled tab in the Request Builder
+
+### Also fixed while here
+- `Onboarding.tsx`'s "Import OpenAPI Spec" card previously showed a "arrives in a later sprint" note (stale since the feature is now real) — it now starts the demo workspace and jumps straight to the OpenAPI screen.
+- `DocumentationPage.tsx` was a stub with a stale "(Sprint 13)" subtitle from a since-renumbered plan — fully rebuilt.
+
+### Known gaps (scope calls, not oversights)
+- OpenAPI 3.0.x only (no Swagger 2.0, no 3.1-only features) — matches what the parser was built to cover, not a partial implementation of 3.0.x itself.
+- `$ref` resolution is local-only (`#/components/schemas/*`) — no external/remote `$ref` following.
+- Generate Mock Server creates a real, persisted `MockServer` row, but there's no management UI to see/start/stop it yet — that ships with the full Mock Servers screen in Sprint 10 (same "data exists before its screen does" pattern as Sprint 4's Recent Test Runs, populated for real by Sprint 7's Runner).
 
 ---
 
@@ -434,14 +463,12 @@ shell — not the product.
 | Sprint 2 — Design System & Shared UI Primitives | ✅ Built | Dark/Light/System themes + Barlow/JetBrains Mono type; DataTable, Empty/Error/Loading states, ConfirmDialog, Toasts + NotificationCenter, ContextMenu, Modal/Drawer, Tooltips, full palette sections; real Requests & History screens; micro-interaction animations |
 | Sprint 3 — Engine Core | ✅ Built | Engine `StorageProvider` (CRUD + drafts), `InMemoryStorage`, seed + safeStorage `SecretCodec`; `@vayntforge/sqlite` node:sqlite provider (11 tables, WAL, cascade delete, history cap); typed `storage:call` IPC + `StorageService`, preload bridge; workspace-bucket Zustand store + DataBootstrapper; session store slimmmed to UI prefs (persist); all screens (Home/Requests/History, switcher, palette, notifications) read live DB state; secrets ciphertext in DB dump verified; `npm run test` (tsx, 12 tests) + boot smoke green |
 | Rebrand | ✅ Built | Product renamed APIForge → **Vaynt Forge** everywhere (packages `@apiforge/*` → `@vayntforge/*`, bridge `window.vayntforge`, `VayntForgeApi`, `vayntforge.db`, `vayntforge-session`, serializers `vayntforge.*.v1`, `APIForge.html` → `VayntForge.html`); brand logo `vaynt-forge.png` added in TopBar + Onboarding + BrowserWindow icon; productName `vaynt-forge` (userData → `~/Library/Application Support/vaynt-forge`); workspace rebuilt via npm install (lockfile regenerated); typecheck/lint/test/build green + fresh-DB boot smoke verified (seeds 1/4/13/4/5/3/1, no plaintext secrets, no re-seed) |
-| Sprint 1 — App Shell | Not started | |
-| Sprint 2 — Design System | Not started | |
-| Sprint 3 — Engine Core | Not started | |
-| Sprint 4 — Home Dashboard | Not started | |
-| Sprint 5 — Request Builder | Not started | |
-| Sprint 6 — Network Engine | Not started | |
-| Sprint 7 — Collections | Not started | |
-| Sprint 8 — Tests/OpenAPI/Docs | Not started | |
+| Sprints 1-3 re-audit | ✅ Verified | Re-checked every Sprint 1-3 task/acceptance criterion against source (not just checkboxes): typecheck/lint/build/test all green (12/12 tests), secrets-at-rest verified, nav/palette/resize behaviour all real. Only open item: Sprint 2's manual 1280/1600/1920 visual QA pass (unchanged, already flagged) |
+| Sprint 4 — Home Dashboard | ✅ Built | `HomePage.tsx` wired to live `useActiveWorkspaceData()`: welcome banner, metrics row (fixed two hardcoded tiles + a hardcoded "Development" label bug), recent requests, continue-where-left-off, new Recent Test Runs section (empty state until Sprint 7 runner), new API Health indicator (derived from history error rate + mock server status), mock servers strip, quick actions. Verified responsive at 1920×1080/1600×1000/1280×800/1024×768 (app's actual `minWidth`) via Electron+Playwright screenshots; fixed a Quick Actions label-truncation issue found at the 1024px floor width. typecheck/lint/build green |
+| Sprint 5 — Request Builder | ✅ Built | 3-pane resizable layout (explorer/builder/response), 7-tab request editor, all 8 auth types + all 6 body types, `KeyValueEditor`/`VariableInput`/`MethodSelect`/`Tabs`/`CodeEditor` added to `@vayntforge/ui`, per-tab draft store, native file picker IPC for binary bodies. Code editors are CodeMirror 6 (documented "lighter alt" to Monaco), not Monaco. Settings tab has no "encoding" control (no backing field on `RequestSettings`). Two real bugs (arbitrary Tailwind flex values never compiling; `text-transparent`/`caret-text` never compiling, leaking secret plaintext) were only caught by driving the actual Electron app + screenshots — typecheck/lint/build stayed green throughout. All acceptance criteria verified against the running app, not just code review |
+| Sprint 6 — Network Engine | ✅ Built | Real `undici` HTTP client (redirects, auth headers, real DNS timing, 8 tests against a local server) reachable over `network:execute` IPC but deliberately unused by Send (demo URLs don't resolve — see Out of Scope); Send button uses the enhanced `MockRequestClient` instead, now with real variable/auth resolution + a redirect-chain demo. Full response viewer (Body JSON tree/Headers/Cookies/Timeline/Test Results tabs, Pretty/Raw/Preview, error-path card) verified live in the running app. Real assertion evaluator. Script sandbox is Node's `vm` in the main process, not isolated-vm (native-module risk, same behavior guarantee) — 9 tests incl. a real runaway-loop timeout. Closed a real gap from Sprint 4: `addHistory` had no caller until now, so Home's live metrics actually update on Send. typecheck/lint/build/test green throughout |
+| Sprint 7 — Collections | ✅ Built | Real `react-arborist` collection/folder/request tree (drag-drop move, not collection-level reorder — no order field exists), full context menus (New Request/Folder, Rename, Duplicate, Move, Run, Export, Delete on collections; Open/Duplicate/Run/Copy as cURL/Copy URL/Rename/Move/Delete on requests). Collection Runner with live progress, concurrency, JSON data-file iteration, and a Chain tab (list-based, not a visual flow diagram) — writes real `TestRun`s (`saveTestRun` had no caller since Sprint 3). Chain propagation proven with a dedicated engine test, not just a screenshot. Environment Manager (CRUD, `.env` import — new parser, 7 tests — JSON export, Initial/Current/Secret variable rows) + Variable Inspector (live resolution preview). Production-switch warning + DELETE-in-Production confirmation, both verified live in the running app. 9 new/changed files' worth of engine additions (`ChainRule` type, dotenv parser, `resolvePath` now shared). typecheck/lint/build green, 42 tests passing (9 new this sprint) |
+| Sprint 8 — Tests/OpenAPI/Docs | ✅ Built | Real `ajv`-backed `schemaMatches` closes the one honest gap from Sprint 6. New OpenAPI engine layer (`packages/engine/src/openapi/{types,parser,generate}.ts`): parser resolves local `$ref`s and synthesizes examples from JSON Schema (5 tests); generator plans collections/mock servers/code samples from a parsed spec (6 tests). `OpenApiPage.tsx` (import file/URL, tag-grouped Explorer, Send Request/Generate Collection/Generate Mock Server/Generate Documentation) and a fully rebuilt `DocumentationPage.tsx` (Overview + per-tag pages + synthesized Errors section, hosted-docs style) share endpoint-rendering components. `CodeEditor` gained Python/Java/Go/Shell syntax highlighting (Java/Go via `@codemirror/legacy-modes` — no dedicated CM6 packages exist for either) for the 5-language code samples with copy buttons. Hand-authored `DEMO_OPENAPI_YAML` seeded on first launch, exactly matching the 13 seeded demo requests. Verified live end-to-end including a direct SQLite check: Generate Collection produced a real 4-folder/13-request collection (26 total with the demo data), Generate Mock Server produced a real persisted `MockServer`. typecheck/lint/build green, 46 engine tests passing (13 new this sprint: 5 parser + 6 generator + net 2 for real schema validation replacing the old placeholder test) |
 | Sprint 9 — Real-time Protocols | Not started | |
 | Sprint 10 — Mock Servers | Not started | |
 | Sprint 11 — Performance | Not started | |

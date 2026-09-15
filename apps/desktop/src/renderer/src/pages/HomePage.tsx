@@ -1,10 +1,13 @@
 import {
   Activity,
+  AlertTriangle,
   ArrowRight,
   BookOpen,
+  CheckCircle2,
   Clock,
   FileJson,
   FolderOpen,
+  HeartPulse,
   Play,
   Plus,
   Server,
@@ -28,8 +31,19 @@ function formatDuration(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
+function isToday(timestamp: number): boolean {
+  const d = new Date(timestamp)
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
 export function HomePage() {
-  const { history, requests, environments, collections, mockServers } = useActiveWorkspaceData()
+  const { history, requests, environments, collections, mockServers, testRuns } =
+    useActiveWorkspaceData()
 
   const setActiveNav = useSession((s) => s.setActiveNav)
   const openNewRequest = useSession((s) => s.openNewRequest)
@@ -46,26 +60,45 @@ export function HomePage() {
   const avgLatency = history.length
     ? Math.round(history.reduce((acc, h) => acc + h.durationMs, 0) / history.length)
     : 0
+  const requestsToday = history.filter((h) => isToday(h.timestamp)).length
+  const testsExecutedToday = testRuns
+    .filter((t) => isToday(t.startedAt))
+    .reduce((acc, t) => acc + t.iterations, 0)
+
+  const recentTestRuns = [...testRuns].sort((a, b) => b.startedAt - a.startedAt).slice(0, 4)
+
+  const recentHealthWindow = history.slice(0, 20)
+  const healthFailed = recentHealthWindow.filter((h) => h.status >= 400).length
+  const errorRate = recentHealthWindow.length ? healthFailed / recentHealthWindow.length : 0
+  const runningMocks = mockServers.filter((m) => m.status === 'running').length
+  const health =
+    recentHealthWindow.length === 0
+      ? { label: 'No activity yet', tone: 'text-faint', icon: HeartPulse }
+      : errorRate === 0
+        ? { label: 'Healthy', tone: 'text-ok', icon: CheckCircle2 }
+        : errorRate < 0.2
+          ? { label: 'Degraded', tone: 'text-warn', icon: AlertTriangle }
+          : { label: 'Unstable', tone: 'text-err', icon: XCircle }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
-      <section className="flex items-start justify-between gap-4">
-        <div>
+    <div className="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+      <section className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-lg font-semibold text-text">Welcome back</h1>
           <p className="mt-1 text-[13px] text-muted">
             {activeWorkspace?.name ?? 'Acme API'} · {activeEnvName} · {collections.length}{' '}
             collections · {requests.length} requests
           </p>
         </div>
-        <Button size="md" onClick={openNewRequest}>
+        <Button size="md" onClick={openNewRequest} className="shrink-0">
           <Plus className="h-4 w-4" /> New Request
         </Button>
       </section>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: 'Requests today', value: '24', icon: Activity, tone: 'text-accent' },
-          { label: 'Tests executed', value: '12', icon: Play, tone: 'text-accent-2' },
+          { label: 'Requests today', value: String(requestsToday), icon: Activity, tone: 'text-accent' },
+          { label: 'Tests executed', value: String(testsExecutedToday), icon: Play, tone: 'text-accent-2' },
           { label: 'Avg response time', value: `${avgLatency}ms`, icon: Clock, tone: 'text-ok' },
           { label: 'Failed requests', value: String(failed.length), icon: XCircle, tone: 'text-err' },
         ].map((m) => (
@@ -140,6 +173,42 @@ export function HomePage() {
               ))}
             </div>
           </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[12px] font-semibold uppercase tracking-wider text-faint">
+                Recent test runs
+              </h2>
+              <button
+                onClick={() => setActiveNav('tests')}
+                className="flex items-center gap-1 text-[12px] text-accent hover:underline"
+              >
+                Open tests <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+            {recentTestRuns.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-[12px] text-faint">
+                No test runs yet — run a collection to see pass/fail results here.
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {recentTestRuns.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-3 rounded-md border border-border bg-raised px-3 py-2"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-text">{t.name}</span>
+                    <span className="flex shrink-0 items-center gap-1 text-[12px] text-ok">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> {t.passed}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 text-[12px] text-err">
+                      <XCircle className="h-3.5 w-3.5" /> {t.failed}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -151,12 +220,31 @@ export function HomePage() {
             </div>
             <div className="rounded-lg border border-border bg-raised p-3">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-medium text-text">Development</span>
-                <span className="rounded bg-emerald-500/12 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
+                <span className="text-[13px] font-medium text-text">{activeEnvName}</span>
+                <span className="rounded bg-ok/12 px-1.5 py-0.5 text-[10px] font-medium text-ok">
                   ACTIVE
                 </span>
               </div>
               <div className="mt-1 text-[11px] text-faint">{environments.length} environments saved</div>
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[12px] font-semibold uppercase tracking-wider text-faint">
+                API health
+              </h2>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-raised p-3">
+              <health.icon className={`h-4 w-4 shrink-0 ${health.tone}`} />
+              <div className="min-w-0">
+                <div className={`truncate text-[13px] font-medium ${health.tone}`}>{health.label}</div>
+                <div className="mt-0.5 truncate text-[11px] text-faint">
+                  {recentHealthWindow.length === 0
+                    ? 'No recent requests to sample'
+                    : `${healthFailed} failed of last ${recentHealthWindow.length} · ${runningMocks}/${mockServers.length} mocks running`}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -201,10 +289,10 @@ export function HomePage() {
                   onClick={() =>
                     a.label === 'New Request' ? openNewRequest() : setActiveNav(a.nav ?? 'home')
                   }
-                  className="flex items-center gap-2 rounded-md border border-border bg-raised px-3 py-2 text-[12px] text-muted transition-colors hover:border-border-strong hover:text-text"
+                  className="flex items-start gap-2 rounded-md border border-border bg-raised px-3 py-2 text-left text-[12px] text-muted transition-colors hover:border-border-strong hover:text-text"
                 >
-                  <a.icon className="h-3.5 w-3.5 text-faint" />
-                  <span className="truncate">{a.label}</span>
+                  <a.icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
+                  <span className="leading-tight break-words">{a.label}</span>
                 </button>
               ))}
             </div>

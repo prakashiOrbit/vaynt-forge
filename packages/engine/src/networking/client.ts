@@ -1,7 +1,7 @@
 import type { RequestModel } from '../types/request'
 import type { ResponseModel, TimingBreakdown } from '../types/response'
 import type { ResolutionContext } from '../types/variables'
-import { resolveVariables } from '../variables/resolver'
+import { resolveRequest } from './resolve-request'
 
 export interface ExecutionContext {
   environment?: string
@@ -71,18 +71,72 @@ const TIMING_500: TimingBreakdown = {
   download: 14,
   total: 923,
 }
+const TIMING_REDIRECT: TimingBreakdown = { dns: 3, connect: 5, tls: 12, wait: 138, download: 12, total: 170 }
+
+const SAMPLE_REDIRECT: Omit<ResponseModel, 'requestId' | 'timing'> = {
+  status: 200,
+  statusText: 'OK',
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    server: 'cloudflare',
+  },
+  bodyText: JSON.stringify({ message: 'Resource has moved — you are now viewing the current location.' }, null, 2),
+  size: 88,
+  timeMs: 170,
+  cookies: [],
+  redirects: [],
+  handledByMock: true,
+}
 
 /**
- * Sprint 0 mock client. Simulates execution with a short latency and returns
- * the sample success (200) / failure (500) responses from the product spec.
- * Replaced by a real `undici`-based client in Sprint 6 — contract stays identical.
+ * Sprint 0 mock client, extended in Sprint 6 with real variable/auth
+ * resolution (via {@link resolveRequest}), a redirect-chain demo, and honest
+ * error responses for unparseable URLs. Still fabricates the actual HTTP
+ * response — see {@link UndiciRequestClient} for the real network client,
+ * and DEVELOPMENT_ROADMAP.md's "Out of Scope" note for why the Send button
+ * uses this one instead: demo requests target `api.acme.dev`, which doesn't
+ * resolve, so a real client would just fail every demo request with ENOTFOUND.
  */
 export class MockRequestClient implements RequestClient {
-  async execute(request: RequestModel, _ctx: ExecutionContext): Promise<ResponseModel> {
-    const resolvedUrl = resolveVariables(request.url, _ctx.variables).value
-    const isFailure = request.method === 'POST' && /orders/i.test(resolvedUrl)
+  async execute(request: RequestModel, ctx: ExecutionContext): Promise<ResponseModel> {
+    let resolvedUrl: string
+    try {
+      resolvedUrl = resolveRequest(request, ctx.variables).url
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return {
+        requestId: request.id,
+        status: 0,
+        statusText: 'Error',
+        headers: {},
+        bodyText: '',
+        size: 0,
+        timeMs: 0,
+        timing: { dns: 0, connect: 0, tls: 0, wait: 0, download: 0, total: 0 },
+        cookies: [],
+        redirects: [],
+        error: { code: 'INVALID_URL', message: `Could not resolve a valid URL: ${message}` },
+      }
+    }
 
-    await new Promise((r) => setTimeout(r, isFailure ? 320 : 180))
+    const isFailure = request.method === 'POST' && /orders/i.test(resolvedUrl)
+    const isRedirect = !isFailure && request.method === 'GET' && /redirect/i.test(resolvedUrl)
+
+    await new Promise((r) => setTimeout(r, isFailure ? 320 : isRedirect ? 220 : 180))
+
+    if (isRedirect) {
+      const finalUrl = resolvedUrl.replace(/\/redirect\b/i, '/final')
+      return {
+        ...SAMPLE_REDIRECT,
+        requestId: request.id,
+        body: JSON.parse(SAMPLE_REDIRECT.bodyText),
+        timing: TIMING_REDIRECT,
+        redirects: [
+          { url: resolvedUrl, status: 302 },
+          { url: finalUrl, status: 200 },
+        ],
+      }
+    }
 
     const base = isFailure ? SAMPLE_500 : SAMPLE_OK
     return {

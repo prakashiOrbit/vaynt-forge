@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronsUpDown, Layers } from 'lucide-react'
+import { ConfirmDialog } from '@vayntforge/ui'
+import type { Environment } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData } from '../stores/data'
 
 export function EnvironmentSelector() {
   const [open, setOpen] = useState(false)
+  const [pendingProd, setPendingProd] = useState<Environment | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const activeId = useSession((s) => s.activeEnvironmentId)
   const setActiveEnvironment = useSession((s) => s.setActiveEnvironment)
@@ -60,7 +63,11 @@ export function EnvironmentSelector() {
               role="option"
               aria-selected={env.id === activeId}
               onClick={() => {
-                setActiveEnvironment(env.id)
+                if (env.isProduction && env.id !== activeId) {
+                  setPendingProd(env)
+                } else {
+                  setActiveEnvironment(env.id)
+                }
                 setOpen(false)
               }}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[12px] text-muted transition-colors hover:bg-bg-hover hover:text-text"
@@ -76,6 +83,19 @@ export function EnvironmentSelector() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={pendingProd !== null}
+        title="Switch to Production?"
+        description={`Requests sent from here will run against "${pendingProd?.name}" — a real production environment.`}
+        confirmLabel="Switch anyway"
+        tone="danger"
+        onConfirm={() => {
+          if (pendingProd) setActiveEnvironment(pendingProd.id)
+          setPendingProd(null)
+        }}
+        onCancel={() => setPendingProd(null)}
+      />
     </div>
   )
 }

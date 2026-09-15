@@ -9,11 +9,23 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./networking/http-client": {
+      "types": "./dist/networking/http-client.d.ts",
+      "default": "./dist/networking/http-client.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "ajv": "^6.15.0",
+    "js-yaml": "^4.3.2",
+    "undici": "^7.29.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9"
   }
 }

@@ -142,3 +142,33 @@ export interface RequestModel {
   createdAt: number
   updatedAt: number
 }
+
+/** A blank, ready-to-edit request — the starting point for a new workspace tab. */
+export function createDraftRequest(input: {
+  id: string
+  workspaceId: string
+  method?: HttpMethod
+  name?: string
+  url?: string
+  collectionId?: string
+}): RequestModel {
+  const now = Date.now()
+  return {
+    id: input.id,
+    name: input.name ?? 'New Request',
+    method: input.method ?? 'GET',
+    url: input.url ?? '',
+    workspaceId: input.workspaceId,
+    collectionId: input.collectionId,
+    params: [],
+    headers: [],
+    auth: { type: 'none' },
+    body: { type: 'none' },
+    scripts: { preRequest: '', postResponse: '' },
+    assertions: [],
+    settings: { timeoutMs: 30000, followRedirects: true, maxRedirects: 10, sslVerify: true },
+    variables: [],
+    createdAt: now,
+    updatedAt: now,
+  }
+}

@@ -11,11 +11,12 @@ import logo from '../assets/vaynt-forge.png'
 import { useSession } from '../stores/session'
 import { useData } from '../stores/data'
 
-type ImportKind = 'openapi' | 'collection' | null
+type ImportKind = 'collection' | null
 
 export function Onboarding() {
   const setActiveWorkspace = useSession((s) => s.setActiveWorkspace)
   const completeOnboarding = useSession((s) => s.completeOnboarding)
+  const setActiveNav = useSession((s) => s.setActiveNav)
 
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -66,10 +67,11 @@ export function Onboarding() {
       key: 'openapi',
       icon: FileJson,
       title: 'Import OpenAPI Spec',
-      desc: 'Bring a 2.0/3.x spec and turn it into collections.',
+      desc: 'Bring a 3.0.x JSON/YAML spec and explore, generate a collection, mock server, or docs.',
       onClick: () => {
         setCreating(false)
-        setImportNote('openapi')
+        startDemo()
+        setActiveNav('openapi')
       },
     },
     {
@@ -180,10 +182,7 @@ export function Onboarding() {
           <div className="mt-4 w-full rounded-lg border border-border bg-raised p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <span className="text-[12px] font-semibold text-text">
-                  {importNote === 'openapi' ? 'OpenAPI import' : 'Collection import'} arrives in a
-                  later sprint
-                </span>
+                <span className="text-[12px] font-semibold text-text">Postman collection import arrives in a later sprint</span>
                 <p className="mt-1 text-[12px] text-muted">
                   The import pipeline is on the roadmap. For now, start in the demo workspace — it
                   ships with collections, environments, mocks, and history you can explore.

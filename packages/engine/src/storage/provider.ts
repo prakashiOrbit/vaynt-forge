@@ -4,6 +4,7 @@ import type { Variable, Environment } from '../types/variables'
 import type { MockServer } from '../types/mock'
 import type { AppSettings } from '../types/settings'
 import type { AppNotification, NotificationPatch } from '../types/notifications'
+import type { OpenApiSpec } from '../openapi/types'
 
 export type WorkspaceDraft = Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>
 export type WorkspacePatch = Partial<Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>>
@@ -13,6 +14,7 @@ export type FolderDraft = Omit<Folder, 'id'>
 export type FolderPatch = Partial<Omit<Folder, 'id'>>
 export type HistoryInput = Omit<HistoryEntry, 'id'>
 export type NotificationDraft = Omit<AppNotification, 'id' | 'createdAt'>
+export type OpenApiSpecDraft = Omit<OpenApiSpec, 'id' | 'createdAt' | 'updatedAt'>
 
 /**
  * Persistence contract (Sprint 3). Implemented by `InMemoryStorage` (pure TS,
@@ -67,6 +69,11 @@ export interface StorageProvider {
   getMockServer(id: string): MockServer | undefined
   saveMockServer(server: MockServer): void
   deleteMockServer(id: string): void
+
+  // ── OpenAPI specs ─────────────────────────────────────────
+  listOpenApiSpecs(workspaceId: string): OpenApiSpec[]
+  createOpenApiSpec(input: OpenApiSpecDraft): OpenApiSpec
+  deleteOpenApiSpec(id: string): void
 
   // ── History ───────────────────────────────────────────────
   addHistory(entry: HistoryInput): HistoryEntry

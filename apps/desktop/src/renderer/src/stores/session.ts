@@ -15,6 +15,9 @@ export function newRequestTab(seed?: Partial<Omit<WorkspaceTab, 'method'>>): Wor
   return { id, method: 'GET', name: 'New Request', url: 'https://api.acme.dev/v1/users', ...seed }
 }
 
+/** Nav id the shell switches to whenever a request/websocket tab becomes active. */
+export const REQUEST_BUILDER_NAV = 'request-builder'
+
 interface SessionState {
   activeNav: string
   activeWorkspaceId: string
@@ -23,6 +26,8 @@ interface SessionState {
   activeTabId: string | null
   sidebarCollapsed: boolean
   sidebarWidth: number
+  explorerWidth: number
+  responseHeight: number
   theme: 'dark' | 'light' | 'system'
   onboardingComplete: boolean
   paletteOpen: boolean
@@ -33,18 +38,16 @@ interface SessionState {
   openTab(tab: WorkspaceTab): void
   closeTab(id: string): void
   setActiveTab(id: string | null): void
+  updateTab(id: string, patch: Partial<Pick<WorkspaceTab, 'name' | 'method' | 'url' | 'dirty'>>): void
   toggleSidebar(): void
   setSidebarWidth(width: number): void
+  setExplorerWidth(width: number): void
+  setResponseHeight(height: number): void
   setTheme(theme: 'dark' | 'light' | 'system'): void
   completeOnboarding(): void
   setPaletteOpen(open: boolean): void
   openNewRequest(): void
 }
-
-const SAMPLE_TABS: WorkspaceTab[] = [
-  { id: 't1', method: 'GET', name: 'Get User', url: 'https://api.acme.dev/v1/users?page=1&limit=20' },
-  { id: 't2', method: 'POST', name: 'Login', url: 'https://api.acme.dev/v1/auth/login', dirty: true },
-]
 
 export const useSession = create<SessionState>()(
   persist(
@@ -52,10 +55,12 @@ export const useSession = create<SessionState>()(
       activeNav: 'home',
       activeWorkspaceId: '',
       activeEnvironmentId: '',
-      tabs: SAMPLE_TABS,
-      activeTabId: 't1',
+      tabs: [],
+      activeTabId: null,
       sidebarCollapsed: false,
       sidebarWidth: 208,
+      explorerWidth: 240,
+      responseHeight: 280,
       theme: 'dark',
       onboardingComplete: false,
       paletteOpen: false,
@@ -66,28 +71,30 @@ export const useSession = create<SessionState>()(
       openTab: (tab) =>
         set((s) =>
           s.tabs.some((t) => t.id === tab.id)
-            ? { activeTabId: tab.id }
-            : { tabs: [...s.tabs, tab], activeTabId: tab.id }
+            ? { activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
+            : { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
         ),
       closeTab: (id) =>
         set((s) => {
           const tabs = s.tabs.filter((t) => t.id !== id)
           const activeTabId =
             s.activeTabId === id ? (tabs[tabs.length - 1]?.id ?? null) : s.activeTabId
-          return { tabs, activeTabId }
+          return { tabs, activeTabId, activeNav: activeTabId ? s.activeNav : 'home' }
         }),
-      setActiveTab: (id) => set({ activeTabId: id }),
+      setActiveTab: (id) => set({ activeTabId: id, activeNav: id ? REQUEST_BUILDER_NAV : 'home' }),
+      updateTab: (id, patch) =>
+        set((s) => ({ tabs: s.tabs.map((t) => (t.id === id ? { ...t, ...patch } : t)) })),
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setSidebarWidth: (width) => set({ sidebarWidth: width }),
+      setExplorerWidth: (width) => set({ explorerWidth: width }),
+      setResponseHeight: (height) => set({ responseHeight: height }),
       setTheme: (theme) => set({ theme }),
       completeOnboarding: () => set({ onboardingComplete: true, paletteOpen: false }),
       setPaletteOpen: (open) => set({ paletteOpen: open }),
       openNewRequest: () =>
         set((s) => {
           const tab = newRequestTab()
-          return s.tabs.some((t) => t.id === tab.id)
-            ? { activeTabId: tab.id }
-            : { tabs: [...s.tabs, tab], activeTabId: tab.id }
+          return { tabs: [...s.tabs, tab], activeTabId: tab.id, activeNav: REQUEST_BUILDER_NAV }
         }),
     }),
     {
@@ -97,6 +104,8 @@ export const useSession = create<SessionState>()(
         activeEnvironmentId: s.activeEnvironmentId,
         sidebarCollapsed: s.sidebarCollapsed,
         sidebarWidth: s.sidebarWidth,
+        explorerWidth: s.explorerWidth,
+        responseHeight: s.responseHeight,
         theme: s.theme,
         onboardingComplete: s.onboardingComplete,
       }),

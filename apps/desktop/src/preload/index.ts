@@ -12,6 +12,15 @@ const api: VayntForgeApi = {
     version: process.env['npm_package_version'] ?? '0.0.0',
   },
   storage,
+  dialog: {
+    openFile: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_FILE) as Promise<string | null>,
+  },
+  network: {
+    execute: (request, scopes) => ipcRenderer.invoke(IPC.NETWORK_EXECUTE, request, scopes),
+  },
+  scripts: {
+    run: (code, context) => ipcRenderer.invoke(IPC.SCRIPTS_RUN, code, context),
+  },
 }
 
 contextBridge.exposeInMainWorld('vayntforge', api)

@@ -8,17 +8,19 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@vayntforge/engine": "*",
-    "@vayntforge/sqlite": "*",
-    "@vayntforge/ui": "*",
     "@fontsource/barlow": "^5.0.0",
     "@fontsource/barlow-condensed": "^5.0.0",
     "@fontsource/jetbrains-mono": "^5.0.0",
+    "@vayntforge/engine": "*",
+    "@vayntforge/sqlite": "*",
+    "@vayntforge/ui": "*",
     "lucide-react": "^1.46.0",
     "react": "^19.3.0",
+    "react-arborist": "^3.16.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"
   },

@@ -8,6 +8,7 @@ import type {
   FolderPatch,
   HistoryInput,
   NotificationDraft,
+  OpenApiSpecDraft,
 } from './provider'
 import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../types/workspace'
 import type { RequestModel } from '../types/request'
@@ -15,6 +16,7 @@ import type { Variable, Environment } from '../types/variables'
 import type { MockServer } from '../types/mock'
 import type { AppSettings } from '../types/settings'
 import type { AppNotification } from '../types/notifications'
+import type { OpenApiSpec } from '../openapi/types'
 import { seedProvider } from './seed'
 
 /**
@@ -30,6 +32,7 @@ export class InMemoryStorage implements StorageProvider {
   private environments = new Map<string, Environment>()
   private globalVariables = new Map<string, Variable>()
   private mockServers = new Map<string, MockServer>()
+  private openApiSpecs = new Map<string, OpenApiSpec>()
   private history: HistoryEntry[] = []
   private testRuns = new Map<string, TestRun>()
   private settings = new Map<string, AppSettings>()
@@ -75,6 +78,7 @@ export class InMemoryStorage implements StorageProvider {
     for (const e of this.listEnvironments(id)) this.environments.delete(e.id)
     for (const v of this.listGlobalVariables(id)) this.globalVariables.delete(v.id)
     for (const s of this.listMockServers(id)) this.mockServers.delete(s.id)
+    for (const spec of this.listOpenApiSpecs(id)) this.openApiSpecs.delete(spec.id)
     this.history = this.history.filter((h) => h.workspaceId !== id)
     for (const r of this.listTestRuns(id)) this.testRuns.delete(r.id)
     for (const n of this.listNotifications(id)) this.notifications.delete(n.id)
@@ -178,6 +182,20 @@ export class InMemoryStorage implements StorageProvider {
   }
   deleteMockServer(id: string): void {
     this.mockServers.delete(id)
+  }
+
+  // ── OpenAPI specs ─────────────────────────────────────────
+  listOpenApiSpecs(workspaceId: string): OpenApiSpec[] {
+    return [...this.openApiSpecs.values()].filter((s) => s.workspaceId === workspaceId)
+  }
+  createOpenApiSpec(input: OpenApiSpecDraft): OpenApiSpec {
+    const now = Date.now()
+    const spec: OpenApiSpec = { ...input, id: this.nextId('spec'), createdAt: now, updatedAt: now }
+    this.openApiSpecs.set(spec.id, spec)
+    return spec
+  }
+  deleteOpenApiSpec(id: string): void {
+    this.openApiSpecs.delete(id)
   }
 
   // ── History ───────────────────────────────────────────────

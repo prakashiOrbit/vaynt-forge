@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { NAV_ITEMS } from '../navigation'
 import { useSession } from '../stores/session'
+import { useDragResize } from '../lib/useDragResize'
 
 const MIN_WIDTH = 52
 const MAX_WIDTH = 320
@@ -14,32 +14,15 @@ export function Sidebar() {
   const activeNav = useSession((s) => s.activeNav)
   const setActiveNav = useSession((s) => s.setActiveNav)
 
-  const [resizing, setResizing] = useState(false)
-  const handleRef = useRef<HTMLDivElement>(null)
+  const { resizing, onPointerDown } = useDragResize({
+    axis: 'x',
+    min: MIN_WIDTH,
+    max: MAX_WIDTH,
+    onChange: setSidebarWidth,
+  })
 
   const main = NAV_ITEMS.filter((n) => n.section === 'main')
   const bottom = NAV_ITEMS.filter((n) => n.section === 'bottom')
-
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setResizing(true)
-    const handle = e.currentTarget
-    handle.setPointerCapture(e.pointerId)
-    const onMove = (ev: PointerEvent) => {
-      const rect = (handle.parentElement as HTMLElement).getBoundingClientRect()
-      const next = Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, ev.clientX - rect.left)))
-      setSidebarWidth(next)
-    }
-    const onUp = () => {
-      setResizing(false)
-      handle.removeEventListener('pointermove', onMove)
-      handle.removeEventListener('pointerup', onUp)
-      handle.removeEventListener('pointercancel', onUp)
-    }
-    handle.addEventListener('pointermove', onMove)
-    handle.addEventListener('pointerup', onUp)
-    handle.addEventListener('pointercancel', onUp)
-  }
 
   const renderItem = (id: string, label: string, Icon: (typeof NAV_ITEMS)[number]['icon']) => {
     const active = activeNav === id
@@ -72,7 +55,6 @@ export function Sidebar() {
       style={collapsed ? { width: 48 } : { width: sidebarWidth }}
     >
       <div
-        ref={handleRef}
         onPointerDown={onPointerDown}
         role="separator"
         aria-orientation="vertical"

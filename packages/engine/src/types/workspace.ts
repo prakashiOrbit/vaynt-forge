@@ -7,11 +7,23 @@ export interface Workspace {
   updatedAt: number
 }
 
+/** A Collection Runner chain step: extract a value from this request's response into a variable. */
+export interface ChainRule {
+  id: string
+  requestId: string
+  /** Path into the response body, e.g. `$.token` or `$.users[0].id`. */
+  jsonPath: string
+  variableName: string
+  enabled: boolean
+}
+
 export interface Collection {
   id: string
   name: string
   workspaceId: string
   description?: string
+  /** Optional — collections created before Sprint 7 have none; treat as `[]`. */
+  chainRules?: ChainRule[]
   createdAt: number
   updatedAt: number
 }

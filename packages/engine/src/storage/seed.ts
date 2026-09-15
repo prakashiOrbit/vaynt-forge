@@ -6,6 +6,318 @@ import type { StorageProvider, CollectionDraft, HistoryInput, NotificationDraft 
 import type { AppNotification } from '../types/notifications'
 import { DEFAULT_APP_SETTINGS } from '../types/settings'
 
+/**
+ * The Sprint 8 demo OpenAPI doc — hand-authored to line up with
+ * `DEMO_REQUESTS`/`DEMO_COLLECTIONS` below (same paths, methods, tags), so
+ * "Import a sample OpenAPI file → explorer + docs render fully" has a real
+ * spec to exercise from first launch, no manual import required.
+ */
+export const DEMO_OPENAPI_YAML = `openapi: 3.0.3
+info:
+  title: Acme API
+  version: 1.0.0
+  description: Sample workspace API — authentication, users, orders, payments.
+servers:
+  - url: https://api.acme.dev/v1
+    description: Development
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token issued by /auth/login
+tags:
+  - name: Authentication
+    description: Sign in, refresh, and sign out.
+  - name: Users
+    description: Manage user accounts.
+  - name: Orders
+    description: Create and track orders.
+  - name: Payments
+    description: Charge and look up payments.
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      tags: [Authentication]
+      summary: Log in
+      description: Exchange an email/password for an access token.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+            example: { email: sarah.chen@acme.dev, password: "hunter2" }
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  expiresIn: { type: integer }
+              example: { accessToken: "eyJhbGciOi...", expiresIn: 3600 }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+              example: { error: invalid_credentials }
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [Authentication]
+      summary: Refresh Token
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: New access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+              example: { accessToken: "eyJhbGciOi..." }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [Authentication]
+      summary: Logout
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Signed out
+          content: {}
+  /users:
+    get:
+      operationId: listUsers
+      tags: [Users]
+      summary: Get User
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer }
+          example: 1
+        - name: limit
+          in: query
+          schema: { type: integer }
+          example: 20
+      responses:
+        '200':
+          description: A page of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        email: { type: string }
+                        status: { type: string }
+                  pagination:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+    post:
+      operationId: createUser
+      tags: [Users]
+      summary: Create User
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name: { type: string }
+                email: { type: string }
+            example: { name: Michael Ross, email: michael.ross@acme.dev }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  email: { type: string }
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: string }
+        example: usr_1024
+    get:
+      operationId: getUser
+      tags: [Users]
+      summary: Get User Detail
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A single user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  email: { type: string }
+                  status: { type: string }
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema: { type: object, properties: { error: { type: string } } }
+              example: { error: user_not_found }
+    patch:
+      operationId: updateUser
+      tags: [Users]
+      summary: Update User
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+            example: { name: Michael R. Ross }
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, name: { type: string } } }
+    delete:
+      operationId: deleteUser
+      tags: [Users]
+      summary: Delete User
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Deleted
+          content: {}
+  /orders:
+    post:
+      operationId: createOrder
+      tags: [Orders]
+      summary: Create Order
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  items: { type: object, properties: { sku: { type: string }, quantity: { type: integer } } }
+            example: { items: [{ sku: "acme-1", quantity: 2 }] }
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, status: { type: string } } }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { type: object, properties: { error: { type: object, properties: { code: { type: string }, message: { type: string } } } } }
+              example: { error: { code: DATABASE_TIMEOUT, message: "Unable to complete database operation" } }
+  /orders/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema: { type: string }
+        example: ord_901
+    get:
+      operationId: getOrder
+      tags: [Orders]
+      summary: Get Order
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: An order
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, status: { type: string } } }
+    delete:
+      operationId: cancelOrder
+      tags: [Orders]
+      summary: Cancel Order
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Cancelled
+          content: {}
+  /payments:
+    post:
+      operationId: createPayment
+      tags: [Payments]
+      summary: Create Payment
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [orderId, amount]
+              properties:
+                orderId: { type: string }
+                amount: { type: number }
+            example: { orderId: ord_901, amount: 49.99 }
+      responses:
+        '201':
+          description: Payment created
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, status: { type: string } } }
+  /payments/{paymentId}:
+    parameters:
+      - name: paymentId
+        in: path
+        required: true
+        schema: { type: string }
+        example: pay_501
+    get:
+      operationId: getPayment
+      tags: [Payments]
+      summary: Get Payment
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: A payment
+          content:
+            application/json:
+              schema: { type: object, properties: { id: { type: string }, status: { type: string }, amount: { type: number } } }
+`
+
 export const DEMO_WORKSPACE: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'> = {
   name: 'Acme API',
   description: 'Sample workspace — users, orders, payments.',
@@ -211,6 +523,7 @@ export function seedProvider(provider: StorageProvider): Workspace {
     provider.saveGlobalVariable({ ...v, workspaceId: ws.id, scope: 'global' })
   }
   provider.saveMockServer({ ...DEMO_MOCK, workspaceId: ws.id })
+  provider.createOpenApiSpec({ workspaceId: ws.id, name: 'Acme API', format: 'yaml', raw: DEMO_OPENAPI_YAML })
 
   const now = Date.now()
   SEED_HISTORY.forEach((h, i) => {

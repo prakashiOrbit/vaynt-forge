@@ -4,12 +4,17 @@ import type {
   AppNotification,
   AppSettings,
   Collection,
+  CollectionDraft,
   CollectionPatch,
   Environment,
   Folder,
+  FolderDraft,
+  FolderPatch,
   HistoryEntry,
   MockServer,
   NotificationDraft,
+  OpenApiSpec,
+  OpenApiSpecDraft,
   RequestModel,
   TestRun,
   Variable,
@@ -40,6 +45,7 @@ export interface WorkspaceBucket {
   environments: Environment[]
   globalVariables: Variable[]
   mockServers: MockServer[]
+  openApiSpecs: OpenApiSpec[]
   history: HistoryEntry[]
   testRuns: TestRun[]
   settings: AppSettings
@@ -57,6 +63,7 @@ export const DEFAULT_BUCKET: WorkspaceBucket = {
   environments: [],
   globalVariables: [],
   mockServers: [],
+  openApiSpecs: [],
   history: [],
   testRuns: [],
   settings: DEFAULT_APP_SETTINGS,
@@ -75,6 +82,7 @@ function bucketFromSnapshot(snap: WorkspaceSnapshot): WorkspaceBucket {
     environments: snap.environments,
     globalVariables: snap.globalVariables,
     mockServers: snap.mockServers,
+    openApiSpecs: snap.openApiSpecs,
     history: snap.history,
     testRuns: snap.testRuns,
     settings: snap.settings,
@@ -97,6 +105,7 @@ function refreshHostingBuckets(ids: string[]): (state: DataState) => Promise<voi
             b.requests.some((r) => r.id === id) ||
             b.collections.some((c) => c.id === id) ||
             b.mockServers.some((m) => m.id === id) ||
+            b.openApiSpecs.some((s) => s.id === id) ||
             b.environments.some((e) => e.id === id) ||
             b.globalVariables.some((g) => g.id === id) ||
             b.testRuns.some((t) => t.id === id) ||
@@ -122,9 +131,13 @@ interface DataState {
   renameWorkspace(id: string, name: string): Promise<void>
   deleteWorkspace(id: string): Promise<void>
 
-  createCollection(collection: Collection): Promise<Collection>
+  createCollection(input: CollectionDraft): Promise<Collection>
   updateCollection(id: string, patch: CollectionPatch): Promise<void>
   deleteCollection(id: string): Promise<void>
+
+  createFolder(input: FolderDraft): Promise<Folder>
+  updateFolder(id: string, patch: FolderPatch): Promise<void>
+  deleteFolder(id: string, collectionId: string): Promise<void>
 
   saveRequest(request: RequestModel): Promise<void>
   deleteRequest(id: string): Promise<void>
@@ -137,6 +150,9 @@ interface DataState {
 
   saveMockServer(server: MockServer): Promise<void>
   deleteMockServer(id: string): Promise<void>
+
+  createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec>
+  deleteOpenApiSpec(id: string): Promise<void>
 
   addHistory(workspaceId: string, entry: Omit<HistoryEntry, 'id'>): Promise<void>
   clearHistory(workspaceId: string): Promise<void>
@@ -210,12 +226,8 @@ export const useData = create<DataState>()((set, get) => ({
     await get().loadWorkspaces()
   },
 
-  createCollection: async (collection) => {
-    const created = await call('createCollection', {
-      name: collection.name,
-      workspaceId: collection.workspaceId,
-      description: collection.description,
-    })
+  createCollection: async (input) => {
+    const created = await call('createCollection', input)
     await get().refresh(created.workspaceId)
     return created
   },
@@ -226,6 +238,20 @@ export const useData = create<DataState>()((set, get) => ({
   deleteCollection: async (id) => {
     await call('deleteCollection', id)
     await refreshHostingBuckets([id])(get())
+  },
+
+  createFolder: async (input) => {
+    const created = await call('createFolder', input)
+    await refreshHostingBuckets([input.collectionId])(get())
+    return created
+  },
+  updateFolder: async (id, patch) => {
+    const updated = await call('updateFolder', id, patch)
+    if (updated) await refreshHostingBuckets([updated.collectionId])(get())
+  },
+  deleteFolder: async (id, collectionId) => {
+    await call('deleteFolder', id)
+    await refreshHostingBuckets([collectionId])(get())
   },
 
   saveRequest: async (request) => {
@@ -261,6 +287,16 @@ export const useData = create<DataState>()((set, get) => ({
   },
   deleteMockServer: async (id) => {
     await call('deleteMockServer', id)
+    await refreshHostingBuckets([id])(get())
+  },
+
+  createOpenApiSpec: async (input) => {
+    const created = await call('createOpenApiSpec', input)
+    await get().refresh(created.workspaceId)
+    return created
+  },
+  deleteOpenApiSpec: async (id) => {
+    await call('deleteOpenApiSpec', id)
     await refreshHostingBuckets([id])(get())
   },
 

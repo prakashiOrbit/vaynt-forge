@@ -21,6 +21,8 @@ import type {
   FolderDraft,
   FolderPatch,
   NotificationDraft,
+  OpenApiSpec,
+  OpenApiSpecDraft,
 } from '@vayntforge/engine'
 import type { StorageChannel, WorkspaceSnapshot } from '../shared/types'
 
@@ -93,6 +95,7 @@ export class StorageService implements StorageChannel {
       environments: this.provider.listEnvironments(workspaceId),
       globalVariables: this.provider.listGlobalVariables(workspaceId),
       mockServers: this.provider.listMockServers(workspaceId),
+      openApiSpecs: this.provider.listOpenApiSpecs(workspaceId),
       history: this.provider.listHistory(workspaceId),
       testRuns: this.provider.listTestRuns(workspaceId),
       settings: this.provider.getSettings(workspaceId) ?? DEFAULT_APP_SETTINGS,
@@ -160,6 +163,14 @@ export class StorageService implements StorageChannel {
   }
   async deleteMockServer(id: string): Promise<void> {
     this.provider.deleteMockServer(id)
+  }
+
+  // ── OpenAPI specs ─────────────────────────────────────────
+  async createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec> {
+    return this.provider.createOpenApiSpec(input)
+  }
+  async deleteOpenApiSpec(id: string): Promise<void> {
+    this.provider.deleteOpenApiSpec(id)
   }
 
   // ── History ───────────────────────────────────────────────

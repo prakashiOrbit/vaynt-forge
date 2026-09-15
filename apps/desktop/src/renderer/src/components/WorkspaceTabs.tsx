@@ -1,4 +1,5 @@
 import { Plus, X } from 'lucide-react'
+import { MethodBadge } from '@vayntforge/ui'
 import { useSession } from '../stores/session'
 
 export function WorkspaceTabs() {
@@ -7,23 +8,6 @@ export function WorkspaceTabs() {
   const setActiveTab = useSession((s) => s.setActiveTab)
   const closeTab = useSession((s) => s.closeTab)
   const openNewRequest = useSession((s) => s.openNewRequest)
-
-  const methodColor = (method: string) => {
-    switch (method) {
-      case 'GET':
-        return 'text-emerald-400'
-      case 'POST':
-        return 'text-amber-400'
-      case 'PUT':
-        return 'text-blue-400'
-      case 'PATCH':
-        return 'text-violet-400'
-      case 'DELETE':
-        return 'text-red-400'
-      default:
-        return 'text-violet-400'
-    }
-  }
 
   return (
     <div className="flex h-9 shrink-0 items-end overflow-x-auto border-b border-border bg-bg">
@@ -45,9 +29,7 @@ export function WorkspaceTabs() {
                   : 'border-t-2 border-t-transparent bg-bg text-muted hover:bg-bg-hover hover:text-text'
               }`}
             >
-              <span className={`font-mono text-[10px] font-semibold ${methodColor(tab.method)}`}>
-                {tab.method}
-              </span>
+              <MethodBadge method={tab.method} />
               <span className="truncate">{tab.name}</span>
               {tab.dirty && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />}
               <button

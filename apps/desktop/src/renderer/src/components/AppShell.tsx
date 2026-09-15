@@ -8,19 +8,27 @@ import { StatusBar } from './StatusBar'
 import { CommandPalette } from './CommandPalette'
 import { Onboarding } from './Onboarding'
 import { HomePage } from '../pages/HomePage'
+import { RequestBuilderPage } from '../pages/RequestBuilderPage'
 import { RequestsPage } from '../pages/RequestsPage'
+import { CollectionsPage } from '../pages/CollectionsPage'
+import { EnvironmentsPage } from '../pages/EnvironmentsPage'
 import { HistoryPage } from '../pages/HistoryPage'
 import { WebSocketsPage } from '../pages/WebSocketsPage'
 import { PerformancePage } from '../pages/PerformancePage'
 import { DocumentationPage } from '../pages/DocumentationPage'
+import { OpenApiPage } from '../pages/OpenApiPage'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
 
 const SCREENS: Record<string, ComponentType> = {
   home: HomePage,
+  'request-builder': RequestBuilderPage,
   requests: RequestsPage,
+  collections: CollectionsPage,
+  environments: EnvironmentsPage,
   history: HistoryPage,
   websockets: WebSocketsPage,
   performance: PerformancePage,
+  openapi: OpenApiPage,
   documentation: DocumentationPage,
 }
 

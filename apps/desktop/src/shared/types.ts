@@ -17,7 +17,20 @@ import type {
   FolderDraft,
   FolderPatch,
   NotificationDraft,
+  ResponseModel,
+  ScriptContext,
+  ScriptResult,
+  OpenApiSpec,
+  OpenApiSpecDraft,
 } from '@vayntforge/engine'
+
+/** Plain-object variable scopes — reassembled into a `ResolutionContext` (Maps) main-side. */
+export interface VariableScopes {
+  global?: { key: string; value: string }[]
+  environment?: { key: string; value: string }[]
+  collection?: { key: string; value: string }[]
+  request?: { key: string; value: string }[]
+}
 
 /**
  * Everything a single workspace needs rendered. Assembled by the main process
@@ -31,6 +44,7 @@ export interface WorkspaceSnapshot {
   environments: Environment[]
   globalVariables: Variable[]
   mockServers: MockServer[]
+  openApiSpecs: OpenApiSpec[]
   history: HistoryEntry[]
   testRuns: TestRun[]
   settings: AppSettings
@@ -72,6 +86,9 @@ export interface StorageChannel {
   saveMockServer(server: MockServer): Promise<MockServer>
   deleteMockServer(id: string): Promise<void>
 
+  createOpenApiSpec(input: OpenApiSpecDraft): Promise<OpenApiSpec>
+  deleteOpenApiSpec(id: string): Promise<void>
+
   addHistory(entry: Omit<HistoryEntry, 'id'>): Promise<HistoryEntry>
   clearHistory(workspaceId: string): Promise<void>
 
@@ -99,5 +116,21 @@ export interface VayntForgeApi {
       method: K,
       ...args: Parameters<StorageChannel[K]>
     ): Promise<ReturnType<StorageChannel[K]>>
+  }
+  dialog: {
+    /** Native "open file" picker — returns the chosen path, or null if cancelled. */
+    openFile(): Promise<string | null>
+  }
+  network: {
+    /**
+     * Real `undici`-based execution. Reachable and tested, but the renderer's
+     * Send button deliberately does not call this — see
+     * DEVELOPMENT_ROADMAP.md's Sprint 6 "Out of Scope" note.
+     */
+    execute(request: RequestModel, scopes: VariableScopes): Promise<ResponseModel>
+  }
+  scripts: {
+    /** Runs a pre-request/post-response script in a sandboxed `vm` context. */
+    run(code: string, context: ScriptContext): Promise<ScriptResult>
   }
 }
