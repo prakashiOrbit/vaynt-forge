@@ -20,7 +20,7 @@ function generateGuid(): string {
 /**
  * Resolve `{{variable}}` references and generated macros in a template string.
  *
- * Lookup priority: request → collection → environment → global.
+ * Lookup priority: temporary → request → collection → environment → global.
  */
 export function resolveVariables(template: string, ctx: ResolutionContext): ResolutionResult {
   const resolvedKeys = new Set<string>()
@@ -57,6 +57,7 @@ export function resolveVariables(template: string, ctx: ResolutionContext): Reso
 
 function lookupValue(key: string, ctx: ResolutionContext): string | undefined {
   return (
+    ctx.temporary.get(key) ??
     ctx.request.get(key) ??
     ctx.collection.get(key) ??
     ctx.environment.get(key) ??
@@ -77,6 +78,7 @@ export function collectVariables(
     environment?: { key: string; value: string }[]
     collection?: { key: string; value: string }[]
     request?: { key: string; value: string }[]
+    temporary?: { key: string; value: string }[]
   }
 ): ResolutionContext {
   const toMap = (
@@ -87,5 +89,6 @@ export function collectVariables(
     environment: toMap(scopes.environment),
     collection: toMap(scopes.collection),
     request: toMap(scopes.request),
+    temporary: toMap(scopes.temporary),
   }
 }

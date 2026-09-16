@@ -5,6 +5,7 @@ import { evaluateAssertions, parseCsv, resolvePath } from '@vayntforge/engine'
 import type { ChainRule, RequestModel, RunStatus, TestRunRequestResult } from '@vayntforge/engine'
 import { useSession } from '../../stores/session'
 import { useActiveWorkspaceData, useData } from '../../stores/data'
+import { useTemporaryVariables } from '../../stores/temporaryVariables'
 import { sendRequest, type KV } from '../../lib/sendRequest'
 import { applyEnvironmentPatch } from '../../lib/environmentWriteback'
 
@@ -51,6 +52,7 @@ export function CollectionRunner({
 
   const dataFileInputRef = useRef<HTMLInputElement | null>(null)
   const environment = environments.find((e) => e.id === environmentId)
+  const temporaryVariables = useTemporaryVariables((s) => s.list(activeWorkspaceId))
   const hasEnabledChain = chainRules.some((r) => r.enabled)
   const effectiveConcurrency = hasEnabledChain ? 1 : Math.max(1, concurrency)
 
@@ -128,7 +130,8 @@ export function CollectionRunner({
           currentEnvironment,
           [...extractedVars, ...rowVars],
           collections,
-          foldersByCollection
+          foldersByCollection,
+          temporaryVariables
         )
 
         const updatedEnvironment = applyEnvironmentPatch(currentEnvironment, {

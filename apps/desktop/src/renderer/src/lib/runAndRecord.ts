@@ -1,6 +1,7 @@
 import type { Collection, Environment, Folder, RequestModel, Variable } from '@vayntforge/engine'
 import { useData } from '../stores/data'
 import { useResponses } from '../stores/responses'
+import { useTemporaryVariables } from '../stores/temporaryVariables'
 import { sendRequest, type KV, type SendResult } from './sendRequest'
 import { applyEnvironmentPatch } from './environmentWriteback'
 
@@ -30,7 +31,8 @@ export async function runAndRecordRequest(params: {
 }): Promise<SendResult> {
   const { request, tabId, workspaceId, environmentId, globalVariables, environment, extraVariables, collections, foldersByCollection } = params
   useResponses.getState().setSending(tabId, true)
-  const result = await sendRequest(request, globalVariables, environment, extraVariables, collections, foldersByCollection)
+  const temporaryVariables = useTemporaryVariables.getState().list(workspaceId)
+  const result = await sendRequest(request, globalVariables, environment, extraVariables, collections, foldersByCollection, temporaryVariables)
   useResponses.getState().setResult(tabId, result.response, { pre: result.preScript, post: result.postScript })
   const updatedEnvironment = applyEnvironmentPatch(environment, {
     ...result.preScript?.environmentPatch,

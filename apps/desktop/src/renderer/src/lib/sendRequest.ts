@@ -103,7 +103,8 @@ export async function sendRequest(
   environment: Environment | undefined,
   extraVariables: KV[] = [],
   collections: Collection[] = [],
-  foldersByCollection: Record<string, Folder[]> = {}
+  foldersByCollection: Record<string, Folder[]> = {},
+  temporaryVariables: Variable[] = []
 ): Promise<SendResult> {
   const chain = resolveAncestorChain(draft, collections, foldersByCollection)
   const effectiveAuth = resolveEffectiveAuth(draft.auth, chain)
@@ -113,6 +114,7 @@ export async function sendRequest(
 
   const baseEnvVars = environment?.variables ?? []
   const requestScope = [...draft.variables, ...extraVariables]
+  const temporaryScope = toKV(temporaryVariables)
   const envSnapshot = envRecord(toKV(globalVariables), collectionVars, toKV(baseEnvVars), requestScope)
   const requestContext = { method: draft.method, url: draft.url, headers: headerRecord(draft) }
 
@@ -128,6 +130,7 @@ export async function sendRequest(
     collection: collectionVars,
     environment: toKV(effectiveEnvVars),
     request: requestScope,
+    temporary: temporaryScope,
   })
 
   const postScript = await runScriptChain(

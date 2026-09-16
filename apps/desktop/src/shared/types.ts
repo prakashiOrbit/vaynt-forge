@@ -64,6 +64,8 @@ export interface VariableScopes {
   environment?: { key: string; value: string }[]
   collection?: { key: string; value: string }[]
   request?: { key: string; value: string }[]
+  /** Session-only, never persisted — the highest-priority scope, same role Postman's "Local variables" play. */
+  temporary?: { key: string; value: string }[]
 }
 
 /**

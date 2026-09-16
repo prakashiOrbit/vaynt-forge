@@ -28,13 +28,17 @@ export interface Environment {
 
 /**
  * Resolution map for `{{variable}}` substitution, ordered by priority.
- * Lookup order: request → collection → environment → global.
+ * Lookup order: temporary → request → collection → environment → global.
+ * `temporary` is the highest priority — session-only, never persisted to
+ * disk (cleared on app restart), the same role Postman's "Local variables"
+ * play: a scratch pad for values that shouldn't outlive the current session.
  */
 export interface ResolutionContext {
   global: Map<string, string>
   environment: Map<string, string>
   collection: Map<string, string>
   request: Map<string, string>
+  temporary: Map<string, string>
 }
 
 export interface ResolutionResult {

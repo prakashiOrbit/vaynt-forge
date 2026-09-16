@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Copy, Download, Eye, EyeOff, Layers, Plus, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { Clock, Copy, Download, Eye, EyeOff, Layers, Plus, RotateCcw, Trash2, Upload } from 'lucide-react'
 import {
   Button,
   ConfirmDialog,
@@ -13,8 +13,10 @@ import { parseDotEnv, serializeEnvironment, deserializeEnvironmentFile, environm
 import type { Environment, EnvironmentPhase, Variable } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
+import { useTemporaryVariables } from '../stores/temporaryVariables'
 
 const GLOBAL_ID = '__global__'
+const TEMPORARY_ID = '__temporary__'
 const PHASES: EnvironmentPhase[] = ['Development', 'Test', 'Staging', 'Production']
 
 function newVariable(scope: Variable['scope']): Variable {
@@ -46,7 +48,9 @@ export function EnvironmentsPage() {
 
   const selectedEnv = environments.find((e) => e.id === selectedId)
   const isGlobal = selectedId === GLOBAL_ID
-  const rows = isGlobal ? globalVariables : (selectedEnv?.variables ?? [])
+  const isTemporary = selectedId === TEMPORARY_ID
+  const temporaryVariables = useTemporaryVariables((s) => s.list(activeWorkspaceId))
+  const rows = isGlobal ? globalVariables : isTemporary ? temporaryVariables : (selectedEnv?.variables ?? [])
 
   const toggleReveal = (id: string) =>
     setRevealed((s) => {
@@ -58,6 +62,7 @@ export function EnvironmentsPage() {
 
   const saveVariable = (v: Variable) => {
     if (isGlobal) void useData.getState().saveGlobalVariable({ ...v, workspaceId: activeWorkspaceId })
+    else if (isTemporary) useTemporaryVariables.getState().save(activeWorkspaceId, v)
     else if (selectedEnv) {
       const next = { ...selectedEnv, variables: replaceOrAppend(selectedEnv.variables, v) }
       void useData.getState().saveEnvironment(next)
@@ -66,6 +71,7 @@ export function EnvironmentsPage() {
 
   const deleteVariable = (id: string) => {
     if (isGlobal) void useData.getState().deleteGlobalVariable(id)
+    else if (isTemporary) useTemporaryVariables.getState().remove(activeWorkspaceId, id)
     else if (selectedEnv) {
       void useData.getState().saveEnvironment({ ...selectedEnv, variables: selectedEnv.variables.filter((v) => v.id !== id) })
     }
@@ -74,6 +80,8 @@ export function EnvironmentsPage() {
   const addRow = () => {
     if (isGlobal) {
       void useData.getState().saveGlobalVariable({ ...newVariable('global'), workspaceId: activeWorkspaceId })
+    } else if (isTemporary) {
+      useTemporaryVariables.getState().save(activeWorkspaceId, newVariable('temporary'))
     } else if (selectedEnv) {
       void useData
         .getState()
@@ -141,7 +149,7 @@ export function EnvironmentsPage() {
   const onDotEnvSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (!file || (!selectedEnv && !isGlobal)) return
+    if (!file || (!selectedEnv && !isGlobal && !isTemporary)) return
     try {
       const entries = parseDotEnv(await file.text())
       if (entries.length === 0) throw new Error('No KEY=VALUE lines found')
@@ -153,6 +161,15 @@ export function EnvironmentsPage() {
             initialValue: entry.value,
             currentValue: entry.value,
             workspaceId: activeWorkspaceId,
+          })
+        }
+      } else if (isTemporary) {
+        for (const entry of entries) {
+          useTemporaryVariables.getState().save(activeWorkspaceId, {
+            ...newVariable('temporary'),
+            key: entry.key,
+            initialValue: entry.value,
+            currentValue: entry.value,
           })
         }
       } else if (selectedEnv) {
@@ -176,6 +193,7 @@ export function EnvironmentsPage() {
     const ctx = collectVariables({
       global: globalVariables.map((v) => ({ key: v.key, value: v.currentValue })),
       environment: (activeEnv?.variables ?? []).map((v) => ({ key: v.key, value: v.currentValue })),
+      temporary: temporaryVariables.map((v) => ({ key: v.key, value: v.currentValue })),
     })
     return resolveVariables(preview, ctx)
   })()
@@ -215,6 +233,16 @@ export function EnvironmentsPage() {
                 Global
                 <span className="ml-auto text-[10px] text-faint">{globalVariables.length}</span>
               </button>
+              <button
+                onClick={() => setSelectedId(TEMPORARY_ID)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px] ${
+                  isTemporary ? 'bg-bg-active text-text' : 'text-muted hover:bg-bg-hover hover:text-text'
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5 text-faint" />
+                Temporary
+                <span className="ml-auto text-[10px] text-faint">{temporaryVariables.length}</span>
+              </button>
               {environments.map((e) => (
                 <button
                   key={e.id}
@@ -236,7 +264,12 @@ export function EnvironmentsPage() {
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-[13px] font-medium text-text">{isGlobal ? 'Global variables' : selectedEnv?.name}</h2>
+                <h2 className="text-[13px] font-medium text-text">
+                  {isGlobal ? 'Global variables' : isTemporary ? 'Temporary variables' : selectedEnv?.name}
+                </h2>
+                {isTemporary && (
+                  <span className="text-[11px] text-faint">Session-only — cleared when you close the app</span>
+                )}
                 {!isGlobal && selectedEnv && (
                   <select
                     value={selectedEnv.phase}
@@ -260,9 +293,11 @@ export function EnvironmentsPage() {
                 <Button size="sm" variant="ghost" onClick={importDotEnv}>
                   <Upload className="h-3.5 w-3.5" /> Import .env
                 </Button>
-                <Button size="sm" variant="ghost" onClick={importEnvironment}>
-                  <Upload className="h-3.5 w-3.5" /> Import environment
-                </Button>
+                {!isTemporary && (
+                  <Button size="sm" variant="ghost" onClick={importEnvironment}>
+                    <Upload className="h-3.5 w-3.5" /> Import environment
+                  </Button>
+                )}
                 {!isGlobal && selectedEnv && (
                   <>
                     <Button size="sm" variant="ghost" onClick={duplicateEnvironment}>
@@ -375,8 +410,12 @@ export function EnvironmentsPage() {
           <div className="grid grid-cols-2 gap-4">
             <ScopeList title="Global" variables={globalVariables} />
             <ScopeList title={selectedEnv ? `Environment — ${selectedEnv.name}` : 'Environment'} variables={selectedEnv?.variables ?? []} />
-            <ScopeList title="Collection" variables={[]} note="No UI creates collection-scoped variables yet." />
-            <ScopeList title="Temporary" variables={[]} note="Nothing populates temporary-scoped variables yet." />
+            <ScopeList
+              title="Collection"
+              variables={[]}
+              note="Set per-collection (right-click a collection → Settings → Variables) — not shown here since this inspector isn't scoped to one collection."
+            />
+            <ScopeList title="Temporary" variables={temporaryVariables} note={temporaryVariables.length === 0 ? 'Session-only — add one from the Temporary scope on the left.' : undefined} />
           </div>
         </div>
       )}

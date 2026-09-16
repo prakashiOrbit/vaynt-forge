@@ -4,6 +4,7 @@ import { FileQuestion } from 'lucide-react'
 import { createDraftRequest, collectVariables, resolveVariables, type RequestModel } from '@vayntforge/engine'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
+import { useTemporaryVariables } from '../stores/temporaryVariables'
 import { useRequestDraft, useRequestDrafts } from '../stores/requestDrafts'
 import { useResponseEntry, useResponses } from '../stores/responses'
 import { useDragResize } from '../lib/useDragResize'
@@ -67,6 +68,7 @@ export function RequestBuilderPage() {
   const tab = tabs.find((t) => t.id === activeTabId)
   const savedRequest = requests.find((r) => r.id === activeTabId)
   const activeEnv = environments.find((e) => e.id === activeEnvironmentId)
+  const temporaryVariables = useTemporaryVariables((s) => s.list(activeWorkspaceId))
 
   useEffect(() => {
     if (!activeTabId) return
@@ -100,21 +102,23 @@ export function RequestBuilderPage() {
       ...globalVariables.map((v) => v.key),
       ...(activeEnv?.variables.map((v) => v.key) ?? []),
       ...(draft?.variables.map((v) => v.key) ?? []),
+      ...temporaryVariables.map((v) => v.key),
       '$guid',
       '$timestamp',
       '$randomInt',
     ])
     return [...names]
-  }, [activeEnv, globalVariables, draft?.variables])
+  }, [activeEnv, globalVariables, draft?.variables, temporaryVariables])
 
   const resolveTemplate = useMemo(() => {
     const ctx = collectVariables({
       global: globalVariables.map((v) => ({ key: v.key, value: v.currentValue })),
       environment: (activeEnv?.variables ?? []).map((v) => ({ key: v.key, value: v.currentValue })),
       request: (draft?.variables ?? []).map((v) => ({ key: v.key, value: v.value })),
+      temporary: temporaryVariables.map((v) => ({ key: v.key, value: v.currentValue })),
     })
     return (template: string) => resolveVariables(template, ctx).value
-  }, [activeEnv, globalVariables, draft?.variables])
+  }, [activeEnv, globalVariables, draft?.variables, temporaryVariables])
 
   // Cmd+Enter/Cmd+S must fire from anywhere (including inside the URL/body
   // editors), so they're registered here rather than as button onClicks —
