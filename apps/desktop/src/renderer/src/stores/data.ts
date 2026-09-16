@@ -144,6 +144,8 @@ interface DataState {
   createCollection(input: CollectionDraft): Promise<Collection>
   updateCollection(id: string, patch: CollectionPatch): Promise<void>
   deleteCollection(id: string): Promise<void>
+  /** Assigns sequential `order` values to every id in `orderedIds` (its index) — the full new drag order, not a delta. */
+  reorderCollections(workspaceId: string, orderedIds: string[]): Promise<void>
 
   createFolder(input: FolderDraft): Promise<Folder>
   updateFolder(id: string, patch: FolderPatch): Promise<void>
@@ -249,6 +251,16 @@ export const useData = create<DataState>()((set, get) => ({
   updateCollection: async (id, patch) => {
     await call('updateCollection', id, patch)
     await refreshHostingBuckets([id])(get())
+  },
+  reorderCollections: async (workspaceId, orderedIds) => {
+    // Sequential, not fire-and-forget in parallel: each `call` is a separate
+    // write, and firing them concurrently risks the same "which refresh wins"
+    // bucket-replacement race environment writeback ran into — refresh()
+    // only runs once, after every write has actually landed.
+    for (let i = 0; i < orderedIds.length; i++) {
+      await call('updateCollection', orderedIds[i]!, { order: i })
+    }
+    await get().refresh(workspaceId)
   },
   deleteCollection: async (id) => {
     await call('deleteCollection', id)

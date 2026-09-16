@@ -211,9 +211,14 @@ export class SQLiteStorage implements StorageProvider {
 
   // ── Collections ───────────────────────────────────────────
   listCollections(workspaceId: string): Collection[] {
-    return this.all<Collection>('collections', 'workspace_id', workspaceId).sort(
-      (a, b) => a.createdAt - b.createdAt
-    )
+    // Explicitly-ordered collections (dragged at least once) sort first by
+    // `order`; anything never reordered has no `order` at all and falls back
+    // to createdAt, same as before manual reordering existed.
+    return this.all<Collection>('collections', 'workspace_id', workspaceId).sort((a, b) => {
+      const orderA = a.order ?? Number.POSITIVE_INFINITY
+      const orderB = b.order ?? Number.POSITIVE_INFINITY
+      return orderA !== orderB ? orderA - orderB : a.createdAt - b.createdAt
+    })
   }
   getCollection(id: string): Collection | undefined {
     return this.byId<Collection>('collections', id)

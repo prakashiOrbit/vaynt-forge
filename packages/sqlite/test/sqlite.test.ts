@@ -202,6 +202,28 @@ test('deleteWorkspace cascades to every scoped entity', () => {
   store.close()
 })
 
+test('collections sort by their manual drag order once set, and fall back to createdAt for the rest', () => {
+  const store = new SQLiteStorage({ path: tempDb() })
+  const ws = store.createWorkspace({ name: 'Order' })
+  const a = store.createCollection({ name: 'A', workspaceId: ws.id })
+  const b = store.createCollection({ name: 'B', workspaceId: ws.id })
+  const c = store.createCollection({ name: 'C', workspaceId: ws.id })
+
+  // Before any reorder: createdAt order (creation order), matching pre-existing behavior.
+  assert.deepEqual(store.listCollections(ws.id).map((c) => c.name), ['A', 'B', 'C'])
+
+  // Simulates dragging C to the front — the app assigns sequential `order` to every collection, not just the dragged one.
+  store.updateCollection(c.id, { order: 0 })
+  store.updateCollection(a.id, { order: 1 })
+  store.updateCollection(b.id, { order: 2 })
+  assert.deepEqual(store.listCollections(ws.id).map((c) => c.name), ['C', 'A', 'B'])
+
+  // A brand-new collection with no `order` at all falls in after every explicitly-ordered one.
+  store.createCollection({ name: 'D', workspaceId: ws.id })
+  assert.deepEqual(store.listCollections(ws.id).map((c) => c.name), ['C', 'A', 'B', 'D'])
+  store.close()
+})
+
 test('secret values are ciphertext in the raw db file', () => {
   const path = tempDb()
   const store = new SQLiteStorage({ path })

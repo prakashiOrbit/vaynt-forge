@@ -192,7 +192,17 @@ export function CollectionsPage() {
     toast.success('Collection exported', `${c.name} · ${format === 'native' ? 'Vaynt Forge JSON' : format === 'postman' ? 'Postman v2.1' : 'OpenAPI 3.0'}`)
   }
 
-  const onMove: MoveHandler<TreeNode> = async ({ dragNodes, parentId, parentNode }) => {
+  const onMove: MoveHandler<TreeNode> = async ({ dragNodes, parentId, parentNode, index }) => {
+    // Reordering collections themselves: always a root-level drop (no
+    // parent) — every other root-level drop (a stray request/folder) is the
+    // "outside every collection" error case just below.
+    if (!parentId && dragNodes.every((n) => n.data.kind === 'collection')) {
+      const draggedIds = new Set(dragNodes.map((n) => n.id))
+      const remaining = tree.filter((node) => node.kind === 'collection' && node.id !== UNFILED_ID && !draggedIds.has(node.id)).map((node) => node.id)
+      remaining.splice(index, 0, ...dragNodes.map((n) => n.id))
+      await useData.getState().reorderCollections(activeWorkspaceId, remaining)
+      return
+    }
     if (!parentId || !parentNode) {
       toast.error('Drop inside a collection', 'Items can’t be moved outside every collection.')
       return
@@ -390,7 +400,7 @@ export function CollectionsPage() {
               rowHeight={26}
               indent={16}
               openByDefault={false}
-              disableDrag={(data) => data.kind === 'collection'}
+              disableDrag={(data) => data.kind === 'collection' && data.id === UNFILED_ID}
               disableDrop={({ parentNode }) => parentNode.data.id === UNFILED_ID}
               onMove={onMove}
               onRename={(args) => void onRename(args)}

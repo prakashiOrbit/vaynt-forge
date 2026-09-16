@@ -33,6 +33,8 @@ export interface Collection {
   variables?: Variable[]
   /** Run before/after every request in this collection, ahead of any folder's and the request's own — see `resolveAncestorScripts`. */
   scripts?: RequestScripts
+  /** Manual drag-reorder position among sibling collections in the same workspace — lower sorts first. Unset (never reordered) sorts after every explicitly-ordered collection, by `createdAt`. */
+  order?: number
   createdAt: number
   updatedAt: number
 }
