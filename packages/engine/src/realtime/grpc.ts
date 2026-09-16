@@ -2,7 +2,7 @@ import type {
   GrpcMethodKind,
   GrpcService,
   MockTagged,
-} from './types'
+} from './types.js'
 
 /**
  * Sprint 9 — demo gRPC descriptors + a mock client. The descriptors describe

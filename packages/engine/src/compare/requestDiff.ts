@@ -1,6 +1,6 @@
-import type { RequestModel } from '../types/request'
-import type { ResponseModel } from '../types/response'
-import { diffLines, linesAreIdentical, type DiffLine } from './diff'
+import type { RequestModel } from '../types/request.js'
+import type { ResponseModel } from '../types/response.js'
+import { diffLines, linesAreIdentical, type DiffLine } from './diff.js'
 
 export interface FieldDiff {
   label: string

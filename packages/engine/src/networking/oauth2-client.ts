@@ -1,5 +1,5 @@
 import { request as undiciRequest } from 'undici'
-import type { OAuth2Config } from '../types/request'
+import type { OAuth2Config } from '../types/request.js'
 
 export interface OAuth2TokenResult {
   accessToken?: string

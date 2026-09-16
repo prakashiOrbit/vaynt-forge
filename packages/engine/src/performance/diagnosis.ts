@@ -1,4 +1,4 @@
-import type { ResponseModel } from '../types/response'
+import type { ResponseModel } from '../types/response.js'
 
 /**
  * Sprint 11 — the API Debugger's failure diagnosis. Same status-code causes

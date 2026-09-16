@@ -1,7 +1,7 @@
-import type { RequestModel, KeyValuePair } from '../types/request'
-import type { ResolutionContext } from '../types/variables'
-import { resolveVariables } from '../variables/resolver'
-import { applyAuth } from './auth'
+import type { RequestModel, KeyValuePair } from '../types/request.js'
+import type { ResolutionContext } from '../types/variables.js'
+import { resolveVariables } from '../variables/resolver.js'
+import { applyAuth } from './auth.js'
 
 export interface ResolvedRequest {
   url: string

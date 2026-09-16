@@ -1,5 +1,5 @@
-import type { AuthConfig } from '../types/request'
-import type { Collection, Folder } from '../types/workspace'
+import type { AuthConfig } from '../types/request.js'
+import type { Collection, Folder } from '../types/workspace.js'
 
 /** A request's resolved ancestry: its collection (if any) and the folder chain from outermost to innermost. */
 export interface AncestorChain {

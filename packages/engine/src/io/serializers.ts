@@ -1,6 +1,6 @@
-import type { RequestModel } from '../types/request'
-import type { Environment } from '../types/variables'
-import { generateId } from '../util/id'
+import type { RequestModel } from '../types/request.js'
+import type { Environment } from '../types/variables.js'
+import { generateId } from '../util/id.js'
 
 /**
  * Import/export serialisers (Sprint 3). Versioned JSON files ready for the

@@ -1,4 +1,4 @@
-import type { MockSseSession, SseEvent, SseHandlers, SseStatus } from './types'
+import type { MockSseSession, SseEvent, SseHandlers, SseStatus } from './types.js'
 
 /**
  * Sprint 9 — mock Server-Sent Events stream. Emits a believable, endless demo

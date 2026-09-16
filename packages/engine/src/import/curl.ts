@@ -1,4 +1,4 @@
-import type { HttpMethod, KeyValuePair, RequestBody } from '../types/request'
+import type { HttpMethod, KeyValuePair, RequestBody } from '../types/request.js'
 
 /**
  * Sprint 12 — parses a single `curl` command line into request fields.

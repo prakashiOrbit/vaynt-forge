@@ -1,5 +1,5 @@
-import type { AuthConfig, HttpMethod, KeyValuePair, RequestBody } from '../types/request'
-import type { CollectionPlan, PlannedRequest } from '../openapi/generate'
+import type { AuthConfig, HttpMethod, KeyValuePair, RequestBody } from '../types/request.js'
+import type { CollectionPlan, PlannedRequest } from '../openapi/generate.js'
 
 /**
  * Sprint 12 — Postman Collection v2.x importer. Produces the same

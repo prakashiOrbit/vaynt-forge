@@ -1,4 +1,4 @@
-import type { ResolutionContext, ResolutionResult } from '../types/variables'
+import type { ResolutionContext, ResolutionResult } from '../types/variables.js'
 
 const VARIABLE_PATTERN = /\{\{\s*([^{}\s]+)\s*\}\}/g
 

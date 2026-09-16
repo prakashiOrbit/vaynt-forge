@@ -1,4 +1,4 @@
-import type { MockEndpoint } from '../types/mock'
+import type { MockEndpoint } from '../types/mock.js'
 
 /**
  * Sprint 10 — matches an incoming (method, path) against a mock server's

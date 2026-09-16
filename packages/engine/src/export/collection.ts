@@ -1,5 +1,5 @@
-import type { Collection } from '../types/workspace'
-import type { RequestModel } from '../types/request'
+import type { Collection } from '../types/workspace.js'
+import type { RequestModel } from '../types/request.js'
 
 /**
  * Sprint 12 — collection export to interop formats. Native JSON export

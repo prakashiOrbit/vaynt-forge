@@ -1,7 +1,7 @@
 import Ajv from 'ajv'
 import type { ValidateFunction } from 'ajv'
-import type { Assertion } from '../types/request'
-import type { ResponseModel } from '../types/response'
+import type { Assertion } from '../types/request.js'
+import type { ResponseModel } from '../types/response.js'
 
 const ajv = new Ajv({ allErrors: true })
 /** Compiled-validator cache, keyed by the raw schema text — assertions run

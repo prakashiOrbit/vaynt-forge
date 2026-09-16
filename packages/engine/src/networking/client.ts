@@ -1,8 +1,8 @@
-import type { RequestModel } from '../types/request'
-import type { ResponseModel, TimingBreakdown } from '../types/response'
-import type { ClientCertificateEntry, ProxyConfig } from '../types/settings'
-import type { ResolutionContext } from '../types/variables'
-import { resolveRequest } from './resolve-request'
+import type { RequestModel } from '../types/request.js'
+import type { ResponseModel, TimingBreakdown } from '../types/response.js'
+import type { ClientCertificateEntry, ProxyConfig } from '../types/settings.js'
+import type { ResolutionContext } from '../types/variables.js'
+import { resolveRequest } from './resolve-request.js'
 
 export interface ExecutionContext {
   environment?: string

@@ -1,5 +1,5 @@
-import { generateId } from '../util/id'
-import type { MockWsSession, WsHandlers, WsMessageFormat, WsStatus } from './types'
+import { generateId } from '../util/id.js'
+import type { MockWsSession, WsHandlers, WsMessageFormat, WsStatus } from './types.js'
 
 /**
  * Sprint 9 — mock WebSocket client. Mirrors `MockRequestClient`: it resolves

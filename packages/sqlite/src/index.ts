@@ -1,2 +1,2 @@
-export { SQLiteStorage } from './sqlite-storage'
-export type { SQLiteStorageOptions } from './sqlite-storage'
+export { SQLiteStorage } from './sqlite-storage.js'
+export type { SQLiteStorageOptions } from './sqlite-storage.js'

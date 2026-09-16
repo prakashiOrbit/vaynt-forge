@@ -1,5 +1,5 @@
-import type { AuthConfig, RequestScripts } from './request'
-import type { Variable } from './variables'
+import type { AuthConfig, RequestScripts } from './request.js'
+import type { Variable } from './variables.js'
 
 export interface Workspace {
   id: string

@@ -1,4 +1,4 @@
-import { generateId } from '../util/id'
+import { generateId } from '../util/id.js'
 import type {
   GraphQLError,
   GraphQLExecutionResult,
@@ -6,7 +6,7 @@ import type {
   GraphQLObjectType,
   GraphQLSchemaModel,
   GraphQLTypeRef,
-} from './types'
+} from './types.js'
 
 /**
  * Sprint 9 — a small but genuine GraphQL engine: a demo schema model, an

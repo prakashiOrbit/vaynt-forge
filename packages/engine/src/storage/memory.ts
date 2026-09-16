@@ -9,17 +9,17 @@ import type {
   HistoryInput,
   NotificationDraft,
   OpenApiSpecDraft,
-} from './provider'
-import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../types/workspace'
-import type { RequestModel } from '../types/request'
-import type { Variable, Environment } from '../types/variables'
-import type { MockServer } from '../types/mock'
-import type { AppSettings } from '../types/settings'
-import type { AppNotification } from '../types/notifications'
-import type { OpenApiSpec } from '../openapi/types'
-import type { PerformanceRun } from '../types/performance'
-import type { JarCookie } from '../types/response'
-import { seedProvider } from './seed'
+} from './provider.js'
+import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../types/workspace.js'
+import type { RequestModel } from '../types/request.js'
+import type { Variable, Environment } from '../types/variables.js'
+import type { MockServer } from '../types/mock.js'
+import type { AppSettings } from '../types/settings.js'
+import type { AppNotification } from '../types/notifications.js'
+import type { OpenApiSpec } from '../openapi/types.js'
+import type { PerformanceRun } from '../types/performance.js'
+import type { JarCookie } from '../types/response.js'
+import { seedProvider } from './seed.js'
 
 /**
  * Pure-TS storage provider — no Electron, no Node imports. Used by tests and

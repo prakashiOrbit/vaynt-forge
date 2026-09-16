@@ -1,5 +1,5 @@
-import type { AuthConfig, HttpMethod, KeyValuePair, RawLanguage, RequestBody } from '../types/request'
-import type { CollectionPlan, PlannedRequest } from '../openapi/generate'
+import type { AuthConfig, HttpMethod, KeyValuePair, RawLanguage, RequestBody } from '../types/request.js'
+import type { CollectionPlan, PlannedRequest } from '../openapi/generate.js'
 
 /**
  * Insomnia v4 export importer. Produces the same `CollectionPlan` shape

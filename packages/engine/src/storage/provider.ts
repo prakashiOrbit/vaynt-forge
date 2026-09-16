@@ -1,12 +1,12 @@
-import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../types/workspace'
-import type { RequestModel } from '../types/request'
-import type { Variable, Environment } from '../types/variables'
-import type { MockServer } from '../types/mock'
-import type { AppSettings } from '../types/settings'
-import type { AppNotification, NotificationPatch } from '../types/notifications'
-import type { OpenApiSpec } from '../openapi/types'
-import type { PerformanceRun } from '../types/performance'
-import type { JarCookie } from '../types/response'
+import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../types/workspace.js'
+import type { RequestModel } from '../types/request.js'
+import type { Variable, Environment } from '../types/variables.js'
+import type { MockServer } from '../types/mock.js'
+import type { AppSettings } from '../types/settings.js'
+import type { AppNotification, NotificationPatch } from '../types/notifications.js'
+import type { OpenApiSpec } from '../openapi/types.js'
+import type { PerformanceRun } from '../types/performance.js'
+import type { JarCookie } from '../types/response.js'
 
 export type WorkspaceDraft = Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>
 export type WorkspacePatch = Partial<Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>>

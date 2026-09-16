@@ -1,6 +1,6 @@
-import type { AuthConfig, KeyValuePair } from '../types/request'
-import type { ResolutionContext } from '../types/variables'
-import { resolveVariables } from '../variables/resolver'
+import type { AuthConfig, KeyValuePair } from '../types/request.js'
+import type { ResolutionContext } from '../types/variables.js'
+import { resolveVariables } from '../variables/resolver.js'
 
 function pair(key: string, value: string): KeyValuePair {
   return { id: `auth_${key}`, key, value, enabled: true }

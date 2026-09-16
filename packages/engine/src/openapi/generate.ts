@@ -1,6 +1,6 @@
-import type { AuthConfig, HttpMethod, KeyValuePair, RequestBody } from '../types/request'
-import type { MockEndpoint } from '../types/mock'
-import type { ParsedOpenApiSpec, OpenApiOperation } from './types'
+import type { AuthConfig, HttpMethod, KeyValuePair, RequestBody } from '../types/request.js'
+import type { MockEndpoint } from '../types/mock.js'
+import type { ParsedOpenApiSpec, OpenApiOperation } from './types.js'
 
 const HTTP_METHODS = new Set<HttpMethod>(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 

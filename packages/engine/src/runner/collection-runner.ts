@@ -1,21 +1,21 @@
-import { UndiciRequestClient } from '../networking/http-client'
-import { runScript } from '../scripting/sandbox'
+import { UndiciRequestClient } from '../networking/http-client.js'
+import { runScript } from '../scripting/sandbox.js'
 import {
   resolveAncestorChain,
   resolveAncestorScripts,
   resolveCollectionVariables,
   resolveEffectiveAuth,
-} from '../collections/inheritance'
-import { collectVariables } from '../variables/resolver'
-import { resolveRequest } from '../networking/resolve-request'
-import { cookieHeaderForUrl, cookiesFromResponse, mergeIntoJar } from '../networking/cookie-jar'
-import { evaluateAssertions, resolvePath } from '../testing/evaluate'
-import type { ScriptContext, ScriptResult } from '../scripting/types'
-import type { RequestModel } from '../types/request'
-import type { Collection, Folder, ChainRule, RunStatus, TestRunRequestResult } from '../types/workspace'
-import type { Environment, Variable } from '../types/variables'
-import type { JarCookie, ResponseModel } from '../types/response'
-import type { ClientCertificateEntry, ProxyConfig } from '../types/settings'
+} from '../collections/inheritance.js'
+import { collectVariables } from '../variables/resolver.js'
+import { resolveRequest } from '../networking/resolve-request.js'
+import { cookieHeaderForUrl, cookiesFromResponse, mergeIntoJar } from '../networking/cookie-jar.js'
+import { evaluateAssertions, resolvePath } from '../testing/evaluate.js'
+import type { ScriptContext, ScriptResult } from '../scripting/types.js'
+import type { RequestModel } from '../types/request.js'
+import type { Collection, Folder, ChainRule, RunStatus, TestRunRequestResult } from '../types/workspace.js'
+import type { Environment, Variable } from '../types/variables.js'
+import type { JarCookie, ResponseModel } from '../types/response.js'
+import type { ClientCertificateEntry, ProxyConfig } from '../types/settings.js'
 
 /**
  * The engine-side "send one request" pipeline: ancestor + own pre-request

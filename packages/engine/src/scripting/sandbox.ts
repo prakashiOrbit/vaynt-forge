@@ -1,5 +1,5 @@
 import vm from 'node:vm'
-import type { ScriptContext, ScriptResult } from './types'
+import type { ScriptContext, ScriptResult } from './types.js'
 
 const TIMEOUT_MS = 1000
 

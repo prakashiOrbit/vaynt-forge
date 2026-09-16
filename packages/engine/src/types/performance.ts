@@ -1,4 +1,4 @@
-import type { HttpMethod } from './request'
+import type { HttpMethod } from './request.js'
 
 /**
  * Sprint 11 — performance/load testing types. A run targets a saved request

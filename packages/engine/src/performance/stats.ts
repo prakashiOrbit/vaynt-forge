@@ -1,4 +1,4 @@
-import type { PerfPercentiles, PerfResult, PerfSample } from '../types/performance'
+import type { PerfPercentiles, PerfResult, PerfSample } from '../types/performance.js'
 
 /**
  * Sprint 11 — pure statistics over a load test's samples. Nearest-rank

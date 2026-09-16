@@ -1,10 +1,10 @@
-import type { Workspace } from '../types/workspace'
-import type { RequestModel } from '../types/request'
-import type { Variable, Environment } from '../types/variables'
-import type { MockServer } from '../types/mock'
-import type { StorageProvider, CollectionDraft, HistoryInput, NotificationDraft } from './provider'
-import type { AppNotification } from '../types/notifications'
-import { DEFAULT_APP_SETTINGS } from '../types/settings'
+import type { Workspace } from '../types/workspace.js'
+import type { RequestModel } from '../types/request.js'
+import type { Variable, Environment } from '../types/variables.js'
+import type { MockServer } from '../types/mock.js'
+import type { StorageProvider, CollectionDraft, HistoryInput, NotificationDraft } from './provider.js'
+import type { AppNotification } from '../types/notifications.js'
+import { DEFAULT_APP_SETTINGS } from '../types/settings.js'
 
 /**
  * The Sprint 8 demo OpenAPI doc — hand-authored to line up with

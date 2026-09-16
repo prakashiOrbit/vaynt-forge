@@ -1,6 +1,6 @@
-import type { StorageProvider, CollectionDraft, CollectionPatch, FolderDraft, FolderPatch } from './provider'
-import type { Variable, Environment } from '../types/variables'
-import type { AuthConfig, KeyValuePair, RequestBody, RequestModel } from '../types/request'
+import type { StorageProvider, CollectionDraft, CollectionPatch, FolderDraft, FolderPatch } from './provider.js'
+import type { Variable, Environment } from '../types/variables.js'
+import type { AuthConfig, KeyValuePair, RequestBody, RequestModel } from '../types/request.js'
 
 /**
  * Abstraction over a platform secure store. The desktop app implements this

@@ -1,4 +1,4 @@
-import type { JarCookie, ResponseCookie } from '../types/response'
+import type { JarCookie, ResponseCookie } from '../types/response.js'
 
 /** RFC 6265 §5.1.4 default-path algorithm, simplified: the request path up to (not including) its last `/`, or `/` if there isn't one past the first character. */
 function defaultPath(requestPath: string): string {

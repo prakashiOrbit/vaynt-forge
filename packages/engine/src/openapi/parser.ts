@@ -7,7 +7,7 @@ import type {
   OpenApiSecurityScheme,
   OpenApiTag,
   ParsedOpenApiSpec,
-} from './types'
+} from './types.js'
 
 type Json = Record<string, unknown>
 
