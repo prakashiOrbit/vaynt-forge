@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Circle, MinusCircle, Play, Upload, X } from 'lucide-react'
 import { Button, MethodBadge, Modal, Tabs, toast, type TabItem } from '@vayntforge/ui'
 import { evaluateAssertions, parseCsv, resolvePath } from '@vayntforge/engine'
@@ -8,8 +8,9 @@ import { useActiveWorkspaceData, useData } from '../../stores/data'
 import { useTemporaryVariables } from '../../stores/temporaryVariables'
 import { sendRequest, type KV } from '../../lib/sendRequest'
 import { applyEnvironmentPatch } from '../../lib/environmentWriteback'
+import { ChainDiagram } from './ChainDiagram'
 
-type RunnerTab = 'config' | 'chain'
+type RunnerTab = 'config' | 'chain' | 'diagram'
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
@@ -49,8 +50,10 @@ export function CollectionRunner({
   const [running, setRunning] = useState(false)
   const [results, setResults] = useState<TestRunRequestResult[]>([])
   const [finished, setFinished] = useState(false)
+  const [highlightedRequestId, setHighlightedRequestId] = useState<string | null>(null)
 
   const dataFileInputRef = useRef<HTMLInputElement | null>(null)
+  const chainRowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const environment = environments.find((e) => e.id === environmentId)
   const temporaryVariables = useTemporaryVariables((s) => s.list(activeWorkspaceId))
   const hasEnabledChain = chainRules.some((r) => r.enabled)
@@ -59,6 +62,12 @@ export function CollectionRunner({
   const passed = results.filter((r) => r.status === 'pass').length
   const failed = results.filter((r) => r.status === 'fail').length
   const skipped = results.filter((r) => r.status === 'skip').length
+
+  useEffect(() => {
+    if (!highlightedRequestId) return
+    const timer = setTimeout(() => setHighlightedRequestId(null), 1500)
+    return () => clearTimeout(timer)
+  }, [highlightedRequestId])
 
   const persistChainRules = (next: ChainRule[]) => {
     setChainRules(next)
@@ -210,6 +219,16 @@ export function CollectionRunner({
     })
   }
 
+  const jumpToChainRule = (requestId: string) => {
+    setTab('chain')
+    setHighlightedRequestId(requestId)
+    // The Chain tab's rows haven't mounted yet on the same tick this switches
+    // to it — wait a frame so the ref is actually attached before scrolling.
+    requestAnimationFrame(() => {
+      chainRowRefs.current[requestId]?.scrollIntoView({ block: 'nearest' })
+    })
+  }
+
   const openFailedRequest = (requestId: string) => {
     const req = collectionRequests.find((r) => r.id === requestId)
     if (!req) return
@@ -221,6 +240,7 @@ export function CollectionRunner({
   const tabs: TabItem<RunnerTab>[] = [
     { id: 'config', label: 'Config' },
     { id: 'chain', label: 'Chain', badge: chainRules.filter((r) => r.enabled).length },
+    { id: 'diagram', label: 'Diagram' },
   ]
 
   return (
@@ -324,7 +344,15 @@ export function CollectionRunner({
                 collectionRequests.map((r) => {
                   const rule = ruleFor(r.id)
                   return (
-                    <div key={r.id} className="rounded-md border border-border p-2">
+                    <div
+                      key={r.id}
+                      ref={(el) => {
+                        chainRowRefs.current[r.id] = el
+                      }}
+                      className={`rounded-md border p-2 transition-colors ${
+                        highlightedRequestId === r.id ? 'border-accent bg-accent/5' : 'border-border'
+                      }`}
+                    >
                       <div className="flex items-center gap-2">
                         <input
                           type="checkbox"
@@ -356,6 +384,10 @@ export function CollectionRunner({
                 })
               )}
             </div>
+          )}
+
+          {tab === 'diagram' && (
+            <ChainDiagram requests={collectionRequests} chainRules={chainRules} onSelectRequest={jumpToChainRule} />
           )}
 
           <div className="mt-4 flex justify-end gap-2 border-t border-border pt-3">
