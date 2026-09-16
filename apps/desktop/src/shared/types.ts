@@ -27,6 +27,7 @@ import type {
   GrpcFrame,
   GrpcMetadataArg,
   GrpcService,
+  ConsoleEntry,
   WsMessageFormat,
   WsPushEvent,
   SsePushEvent,
@@ -245,6 +246,10 @@ export interface VayntForgeApi {
       /** Subscribe to SSE events; returns an unsubscribe function. */
       onEvent(callback: (channelId: string, event: SsePushEvent) => void): () => void
     }
+  }
+  console: {
+    /** Subscribe to real REST/GraphQL request/response console entries (pushed after every `network:execute` call); returns an unsubscribe function. */
+    onEntry(callback: (entry: ConsoleEntry) => void): () => void
   }
   mock: {
     /** Starts (or restarts) a real `node:http` server bound to `server.port`. */

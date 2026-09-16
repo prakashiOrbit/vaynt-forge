@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { dialog, ipcMain, BrowserWindow } from 'electron'
 import {
   collectVariables,
@@ -5,6 +6,7 @@ import {
   cookieHeaderForUrl,
   cookiesFromResponse,
   mergeIntoJar,
+  type ConsoleEntry,
   type RequestModel,
   type ScriptContext,
 } from '@vayntforge/engine'
@@ -142,7 +144,7 @@ export function registerIpcHandlers(storage: StorageService): void {
   // any Set-Cookie headers it carried into the jar and persist it. Both
   // steps are skipped entirely when the request already has an explicit
   // Cookie header, and skipped/no-op when the response sets no cookies.
-  ipcMain.handle(IPC.NETWORK_EXECUTE, async (_event, request: RequestModel, scopes: VariableScopes) => {
+  ipcMain.handle(IPC.NETWORK_EXECUTE, async (event, request: RequestModel, scopes: VariableScopes) => {
     const ctx = { variables: collectVariables(scopes) }
     const hasExplicitCookieHeader = request.headers.some((h) => h.enabled && h.key.toLowerCase() === 'cookie')
 
@@ -174,6 +176,34 @@ export function registerIpcHandlers(storage: StorageService): void {
         await storage.saveCookieJar(request.workspaceId, merged)
       }
     }
+
+    // The Console shows the real, final wire request — recompute against
+    // `requestToSend` (not the original `request`) so a jar-injected Cookie
+    // header shows up here too, not just the auth/variable resolution the
+    // first `resolveRequest` call above already reflects.
+    let resolvedForLog: ReturnType<typeof resolveRequest> | undefined
+    try {
+      resolvedForLog = resolveRequest(requestToSend, ctx.variables)
+    } catch {
+      resolvedForLog = undefined
+    }
+    const consoleEntry: ConsoleEntry = {
+      id: `console_${randomUUID()}`,
+      timestamp: Date.now(),
+      protocol: 'http',
+      summary: `${requestToSend.method} ${resolvedForLog?.url ?? resolvedUrl ?? requestToSend.url}`,
+      method: requestToSend.method,
+      url: resolvedForLog?.url ?? resolvedUrl ?? requestToSend.url,
+      requestHeaders: resolvedForLog?.headers,
+      requestBody: resolvedForLog?.body,
+      status: response.status,
+      statusText: response.statusText,
+      responseHeaders: response.headers,
+      responseBody: response.bodyText,
+      timeMs: response.timeMs,
+      error: response.error?.message,
+    }
+    event.sender.send(IPC.CONSOLE_ENTRY, consoleEntry)
 
     return response
   })

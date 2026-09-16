@@ -12,6 +12,7 @@ import {
   Send,
   Server,
   Settings,
+  Terminal,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -30,6 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'mock-servers', label: 'Mock Servers', icon: Server, section: 'main' },
   { id: 'openapi', label: 'OpenAPI', icon: FileJson, section: 'main' },
   { id: 'history', label: 'History', icon: History, section: 'main' },
+  { id: 'console', label: 'Console', icon: Terminal, section: 'main' },
   { id: 'performance', label: 'Performance', icon: Activity, section: 'main' },
   { id: 'websockets', label: 'WebSockets', icon: Radio, section: 'main' },
   { id: 'environments', label: 'Environments', icon: Layers, section: 'main' },

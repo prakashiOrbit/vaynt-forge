@@ -73,6 +73,13 @@ const api: VayntForgeApi = {
       },
     },
   },
+  console: {
+    onEntry: (callback) => {
+      const listener = (_e: unknown, entry: unknown) => callback(entry as ConsoleEntry)
+      ipcRenderer.on(IPC.CONSOLE_ENTRY, listener)
+      return () => ipcRenderer.removeListener(IPC.CONSOLE_ENTRY, listener)
+    },
+  },
   mock: {
     start: (server) => ipcRenderer.invoke(IPC.MOCK_START, server) as Promise<void>,
     stop: (id) => ipcRenderer.invoke(IPC.MOCK_STOP, id) as Promise<void>,
@@ -112,6 +119,7 @@ const api: VayntForgeApi = {
 }
 
 import type {
+  ConsoleEntry,
   GrpcFrame,
   GrpcService,
   GrpcStreamResult,

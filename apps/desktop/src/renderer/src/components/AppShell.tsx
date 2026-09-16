@@ -13,6 +13,7 @@ import { RequestsPage } from '../pages/RequestsPage'
 import { CollectionsPage } from '../pages/CollectionsPage'
 import { EnvironmentsPage } from '../pages/EnvironmentsPage'
 import { HistoryPage } from '../pages/HistoryPage'
+import { ConsolePage } from '../pages/ConsolePage'
 import { WebSocketsPage } from '../pages/WebSocketsPage'
 import { PerformancePage } from '../pages/PerformancePage'
 import { DocumentationPage } from '../pages/DocumentationPage'
@@ -31,6 +32,7 @@ const SCREENS: Record<string, ComponentType> = {
   tests: TestsPage,
   environments: EnvironmentsPage,
   history: HistoryPage,
+  console: ConsolePage,
   websockets: WebSocketsPage,
   performance: PerformancePage,
   openapi: OpenApiPage,

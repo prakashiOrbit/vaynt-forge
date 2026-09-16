@@ -29,6 +29,8 @@ export const IPC = {
   SSE_CONNECT: 'network:sse:connect',
   SSE_CLOSE: 'network:sse:close',
   SSE_EVENT: 'network:sse:event',
+  /** Pushed after every real REST/GraphQL request — the app-wide Console's data source. */
+  CONSOLE_ENTRY: 'console:entry',
   MOCK_START: 'mock:start',
   MOCK_STOP: 'mock:stop',
   MOCK_LOG: 'mock:log',
