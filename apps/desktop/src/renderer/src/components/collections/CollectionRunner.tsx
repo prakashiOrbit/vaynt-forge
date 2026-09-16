@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { CheckCircle2, Circle, MinusCircle, Play, Upload, X } from 'lucide-react'
 import { Button, MethodBadge, Modal, Tabs, toast, type TabItem } from '@vayntforge/ui'
-import { evaluateAssertions, resolvePath } from '@vayntforge/engine'
+import { evaluateAssertions, parseCsv, resolvePath } from '@vayntforge/engine'
 import type { ChainRule, RequestModel, RunStatus, TestRunRequestResult } from '@vayntforge/engine'
 import { useSession } from '../../stores/session'
 import { useActiveWorkspaceData, useData } from '../../stores/data'
@@ -81,9 +81,10 @@ export function CollectionRunner({
     e.target.value = ''
     if (!file) return
     try {
-      const parsed = JSON.parse(await file.text())
+      const content = await file.text()
+      const parsed = file.name.toLowerCase().endsWith('.csv') ? parseCsv(content) : JSON.parse(content)
       if (!Array.isArray(parsed) || parsed.some((r) => typeof r !== 'object' || r === null)) {
-        throw new Error('Expected a JSON array of objects, one per iteration')
+        throw new Error('Expected a JSON array of objects (or a CSV file), one row per iteration')
       }
       setDataRows(parsed)
       setIterations(parsed.length)
@@ -196,7 +197,7 @@ export function CollectionRunner({
 
   return (
     <Modal open onClose={onClose} title={`Run “${collection?.name ?? 'Collection'}”`} width="max-w-2xl">
-      <input ref={dataFileInputRef} type="file" accept=".json" className="hidden" onChange={(e) => void onDataFile(e)} />
+      <input ref={dataFileInputRef} type="file" accept=".json,.csv" className="hidden" onChange={(e) => void onDataFile(e)} />
 
       {!running && !finished && (
         <>
@@ -259,7 +260,9 @@ export function CollectionRunner({
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] font-medium text-faint">Data file (JSON array, one object per iteration)</label>
+                <label className="mb-1 block text-[11px] font-medium text-faint">
+                  Data file (JSON array or CSV, one row per iteration)
+                </label>
                 <div className="flex items-center gap-2">
                   <Button size="sm" variant="outline" onClick={() => dataFileInputRef.current?.click()}>
                     <Upload className="h-3.5 w-3.5" /> Choose file

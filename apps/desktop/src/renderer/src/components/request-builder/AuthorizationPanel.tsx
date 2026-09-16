@@ -11,6 +11,8 @@ const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
   { value: 'bearer', label: 'Bearer Token' },
   { value: 'basic', label: 'Basic Auth' },
   { value: 'oauth2', label: 'OAuth 2.0' },
+  { value: 'oauth1', label: 'OAuth 1.0' },
+  { value: 'digest', label: 'Digest Auth' },
   { value: 'jwt', label: 'JWT Bearer' },
   { value: 'aws', label: 'AWS Signature' },
   { value: 'custom', label: 'Custom' },
@@ -36,6 +38,17 @@ function defaultAuthFor(type: AuthType): AuthConfig {
         scopes: '',
         accessToken: '',
       }
+    case 'oauth1':
+      return {
+        type: 'oauth1',
+        consumerKey: '',
+        consumerSecret: '',
+        token: '',
+        tokenSecret: '',
+        signatureMethod: 'HMAC-SHA1',
+      }
+    case 'digest':
+      return { type: 'digest', username: '', password: '' }
     case 'jwt':
       return { type: 'jwt', token: '' }
     case 'aws':
@@ -201,6 +214,59 @@ export function AuthorizationPanel({ draft, update, resolveTemplate }: RequestPa
               Automatic token fetch is only built for Client Credentials — for {auth.grantType === 'authorization_code' ? 'Authorization Code' : 'Password'}, paste a token you obtained elsewhere into Access Token above (or resolve one via a pre-request script).
             </p>
           )}
+        </div>
+      )}
+
+      {auth.type === 'oauth1' && (
+        <div className="grid grid-cols-2 gap-3">
+          <SelectField
+            label="Signature method"
+            value={auth.signatureMethod}
+            onChange={(signatureMethod) => setAuth({ ...auth, signatureMethod })}
+            options={[
+              { value: 'HMAC-SHA1', label: 'HMAC-SHA1' },
+              { value: 'PLAINTEXT', label: 'PLAINTEXT' },
+            ]}
+          />
+          <div />
+          <TextField
+            label="Consumer Key"
+            value={auth.consumerKey}
+            onChange={(consumerKey) => setAuth({ ...auth, consumerKey })}
+          />
+          <TextField
+            label="Consumer Secret"
+            value={auth.consumerSecret}
+            onChange={(consumerSecret) => setAuth({ ...auth, consumerSecret })}
+            type="password"
+          />
+          <TextField label="Token" value={auth.token} onChange={(token) => setAuth({ ...auth, token })} />
+          <TextField
+            label="Token Secret"
+            value={auth.tokenSecret}
+            onChange={(tokenSecret) => setAuth({ ...auth, tokenSecret })}
+            type="password"
+          />
+          <p className="col-span-2 text-[11px] text-faint">
+            Signs the request with a real OAuth 1.0a signature (RFC 5849). Leave Token/Token Secret blank for the
+            two-legged flow.
+          </p>
+        </div>
+      )}
+
+      {auth.type === 'digest' && (
+        <div className="grid grid-cols-2 gap-3">
+          <TextField label="Username" value={auth.username} onChange={(username) => setAuth({ ...auth, username })} />
+          <TextField
+            label="Password"
+            value={auth.password}
+            onChange={(password) => setAuth({ ...auth, password })}
+            type="password"
+          />
+          <p className="col-span-2 text-[11px] text-faint">
+            Realm, nonce, and qop come from the server's real 401 challenge — the request is sent once to receive
+            that challenge, then resent with the computed digest response.
+          </p>
         </div>
       )}
 

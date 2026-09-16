@@ -4,8 +4,14 @@ import { performance } from 'node:perf_hooks'
 import { Agent, request as undiciRequest } from 'undici'
 import type { RequestModel } from '../types/request'
 import type { RedirectEntry, ResponseCookie, ResponseModel } from '../types/response'
+import type { ResolutionContext } from '../types/variables'
+import { resolveVariables } from '../variables/resolver'
 import { resolveRequest } from './resolve-request'
 import type { ExecutionContext, RequestClient } from './client'
+import { buildDigestHeader, parseDigestChallenge } from './digest'
+import { buildOAuth1Header } from './oauth1'
+
+const resolveVar = (template: string, ctx: ResolutionContext): string => resolveVariables(template, ctx).value
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 
@@ -64,6 +70,29 @@ export class UndiciRequestClient implements RequestClient {
     const t0 = performance.now()
     try {
       const resolved = resolveRequest(request, ctx.variables)
+
+      // OAuth 1.0a needs `node:crypto` (HMAC-SHA1) to sign — `applyAuth`
+      // stays Node-free for the renderer, so the real Authorization header
+      // is built here, before the request ever goes out (no challenge round
+      // trip needed, unlike Digest below).
+      if (request.auth.type === 'oauth1') {
+        const auth = request.auth
+        const bodyParams: [string, string][] =
+          request.body.type === 'x-www-form-urlencoded' && resolved.body
+            ? [...new URLSearchParams(resolved.body).entries()]
+            : []
+        resolved.headers['Authorization'] = buildOAuth1Header({
+          method: resolved.method,
+          url: resolved.url,
+          consumerKey: resolveVar(auth.consumerKey, ctx.variables),
+          consumerSecret: resolveVar(auth.consumerSecret, ctx.variables),
+          token: auth.token ? resolveVar(auth.token, ctx.variables) : undefined,
+          tokenSecret: auth.tokenSecret ? resolveVar(auth.tokenSecret, ctx.variables) : undefined,
+          signatureMethod: auth.signatureMethod,
+          bodyParams,
+        })
+      }
+
       const bodyBuf =
         request.body.type === 'binary' && request.body.source
           ? await readFile(request.body.source)
@@ -112,6 +141,36 @@ export class UndiciRequestClient implements RequestClient {
         break
       }
       if (!res) throw new Error('No response received')
+
+      // Digest auth is inherently a two-request protocol: the server has to
+      // issue a 401 with a `WWW-Authenticate: Digest ...` challenge (realm,
+      // nonce, qop) before a response hash can even be computed, so this is
+      // the one auth type that can't be pre-applied — it's signed here, once,
+      // after seeing the real challenge, then the same request is resent.
+      if (request.auth.type === 'digest' && res.statusCode === 401) {
+        const challenge = parseDigestChallenge(flattenHeaders(res.headers)['www-authenticate'])
+        if (challenge) {
+          const auth = request.auth
+          const uri = new URL(currentUrl).pathname + new URL(currentUrl).search
+          const digestHeader = buildDigestHeader({
+            username: resolveVar(auth.username, ctx.variables),
+            password: resolveVar(auth.password, ctx.variables),
+            method: currentMethod,
+            uri,
+            body: typeof currentBody === 'string' ? currentBody : currentBody?.toString('utf8'),
+            challenge,
+          })
+          await res.body.dump().catch(() => {})
+          res = await undiciRequest(currentUrl, {
+            method: currentMethod as never,
+            headers: { ...resolved.headers, Authorization: digestHeader },
+            body: currentBody,
+            dispatcher,
+            headersTimeout: request.settings.timeoutMs,
+            bodyTimeout: request.settings.timeoutMs,
+          })
+        }
+      }
 
       const waitMs = performance.now() - tHeaders0
       const tBody0 = performance.now()

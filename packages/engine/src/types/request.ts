@@ -15,6 +15,8 @@ export type AuthType =
   | 'bearer'
   | 'basic'
   | 'oauth2'
+  | 'oauth1'
+  | 'digest'
   | 'jwt'
   | 'aws'
   | 'custom'
@@ -60,6 +62,29 @@ export interface JwtAuthConfig {
   token: string
 }
 
+/**
+ * RFC 2617/7616 Digest auth. Only credentials are configured here — the
+ * realm/nonce/qop/algorithm come from the server's `WWW-Authenticate`
+ * challenge on a real 401 response, so signing happens request-by-request
+ * in the real HTTP client, not from this static config alone.
+ */
+export interface DigestAuthConfig {
+  type: 'digest'
+  username: string
+  password: string
+}
+
+/** RFC 5849 OAuth 1.0a request signing. */
+export interface OAuth1Config {
+  type: 'oauth1'
+  consumerKey: string
+  consumerSecret: string
+  /** Access token — omit for the (rare) two-legged flow. */
+  token: string
+  tokenSecret: string
+  signatureMethod: 'HMAC-SHA1' | 'PLAINTEXT'
+}
+
 export interface AwsAuthConfig {
   type: 'aws'
   accessKey: string
@@ -79,6 +104,8 @@ export type AuthConfig =
   | BearerAuthConfig
   | BasicAuthConfig
   | OAuth2Config
+  | OAuth1Config
+  | DigestAuthConfig
   | JwtAuthConfig
   | AwsAuthConfig
   | CustomAuthConfig

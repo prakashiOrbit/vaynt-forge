@@ -55,5 +55,14 @@ export function applyAuth(
       // SigV4 request signing is not implemented — a real AWS-signed request
       // needs canonical request construction we're not taking on here.
       return { headers: [], params: [] }
+    case 'digest':
+    case 'oauth1':
+      // Both need `node:crypto` (HMAC/MD5) and, for digest, a real 401
+      // challenge round-trip — neither fits this renderer-visible, Node-free
+      // module. Real signing happens in the Node-only http-client.ts
+      // (see buildDigestHeader/buildOAuth1Header), which calls this function
+      // first, sees nothing to contribute here, and adds the real
+      // Authorization header itself.
+      return { headers: [], params: [] }
   }
 }
