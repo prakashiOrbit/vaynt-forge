@@ -22,5 +22,16 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
+  },
+  {
+    // Plain Node scripts (e.g. apps/cli's esbuild build script) aren't
+    // TypeScript, so they don't get typescript-eslint's own `no-undef: off`
+    // (TS's type checker already covers this more reliably than the plain
+    // ESLint heuristic) — declare the Node/Web globals such scripts
+    // actually use instead of disabling the rule outright.
+    files: ['**/*.mjs'],
+    languageOptions: {
+      globals: { console: 'readonly', process: 'readonly', URL: 'readonly' },
+    },
   }
 )

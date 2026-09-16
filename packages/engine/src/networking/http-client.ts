@@ -88,6 +88,13 @@ function findClientCertificate(entries: ClientCertificateEntry[] | undefined, ur
 export class UndiciRequestClient implements RequestClient {
   async execute(request: RequestModel, ctx: ExecutionContext): Promise<ResponseModel> {
     const t0 = performance.now()
+    // Declared here (not `const` inside the try below) so the `finally`
+    // block can close it — a fresh dispatcher per call that's never closed
+    // leaves its keep-alive socket (and undici's idle timers) open, which
+    // never mattered in the long-running desktop app but hangs a short-lived
+    // process (e.g. the CLI runner) open for tens of seconds after the last
+    // response, waiting for a timeout instead of exiting immediately.
+    let dispatcher: Dispatcher | undefined
     try {
       const resolved = resolveRequest(request, ctx.variables)
 
@@ -176,7 +183,7 @@ export class UndiciRequestClient implements RequestClient {
           : {}),
         ...clientCertOptions,
       }
-      const dispatcher: Dispatcher =
+      dispatcher =
         ctx.proxy?.enabled && ctx.proxy.host
           ? new ProxyAgent({ uri: `http://${ctx.proxy.host}:${ctx.proxy.port}`, connect: connectOptions })
           : new Agent({ connect: connectOptions })
@@ -288,6 +295,8 @@ export class UndiciRequestClient implements RequestClient {
         redirects: [],
         error: { code: errorCode(err), message },
       }
+    } finally {
+      await dispatcher?.close().catch(() => {})
     }
   }
 }

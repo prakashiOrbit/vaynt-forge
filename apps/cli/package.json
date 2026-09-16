@@ -1,0 +1,27 @@
+{
+  "name": "@vayntforge/cli",
+  "version": "0.1.0",
+  "description": "Vaynt Forge headless collection runner — a Newman-equivalent for CI. Runs a real collection against the same real network client (undici, real auth/proxy/certs/cookie-jar) the desktop app's Send button uses, reading the collection straight out of the app's own SQLite data file.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "vaynt-forge": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@vayntforge/engine": "*",
+    "@vayntforge/sqlite": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

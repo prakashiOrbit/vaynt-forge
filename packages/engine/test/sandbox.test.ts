@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { runScript } from '../src/main/scriptSandbox.ts'
-import type { ScriptContext } from '@vayntforge/engine'
+import { runScript } from '../src/scripting/sandbox'
+import type { ScriptContext } from '../src/scripting/types'
 
 function baseContext(overrides: Partial<ScriptContext> = {}): ScriptContext {
   return {

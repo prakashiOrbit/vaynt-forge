@@ -10,17 +10,23 @@ import type {
   HistoryInput,
   NotificationDraft,
   OpenApiSpecDraft,
-} from '../../engine/src/storage/provider'
-import type { Workspace, Collection, Folder, HistoryEntry, TestRun } from '../../engine/src/types/workspace'
-import type { RequestModel } from '../../engine/src/types/request'
-import type { Environment, Variable } from '../../engine/src/types/variables'
-import type { MockServer } from '../../engine/src/types/mock'
-import type { AppSettings } from '../../engine/src/types/settings'
-import type { AppNotification, NotificationPatch } from '../../engine/src/types/notifications'
-import type { OpenApiSpec } from '../../engine/src/openapi/types'
-import type { PerformanceRun } from '../../engine/src/types/performance'
-import type { JarCookie } from '../../engine/src/types/response'
-import { generateId } from '../../engine/src/util/id'
+  Workspace,
+  Collection,
+  Folder,
+  HistoryEntry,
+  TestRun,
+  RequestModel,
+  Environment,
+  Variable,
+  MockServer,
+  AppSettings,
+  AppNotification,
+  NotificationPatch,
+  OpenApiSpec,
+  PerformanceRun,
+  JarCookie,
+} from '@vayntforge/engine'
+import { generateId } from '@vayntforge/engine'
 
 export interface SQLiteStorageOptions {
   /** Absolute path to the `.db` file (the Electron main opens it under userData). */

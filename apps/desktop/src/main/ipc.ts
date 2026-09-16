@@ -15,7 +15,7 @@ import { fetchClientCredentialsToken } from '@vayntforge/engine/networking/oauth
 import { IPC } from '../shared/ipc'
 import type { StorageService } from './storageService'
 import type { VariableScopes } from '../shared/types'
-import { runScript } from './scriptSandbox'
+import { runScript } from '@vayntforge/engine/scripting/sandbox'
 import {
   grpcBidiEnd,
   grpcBidiSend,

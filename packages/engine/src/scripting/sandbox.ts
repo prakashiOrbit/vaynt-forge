@@ -1,5 +1,5 @@
 import vm from 'node:vm'
-import type { ScriptContext, ScriptResult } from '@vayntforge/engine'
+import type { ScriptContext, ScriptResult } from './types'
 
 const TIMEOUT_MS = 1000
 
@@ -45,12 +45,14 @@ function harden<T>(value: T): T {
  * module needing prebuilt binaries matched to Electron's exact ABI, which is
  * a real install/CI risk with no upside for what Sprint 6 actually needs —
  * the acceptance criterion is behavior ("blocks require/process/network"),
- * not a specific implementation. This already runs in the Electron *main*
- * process — a separate OS process from the sandboxed renderer, which is a
- * stronger boundary than same-process isolated-vm would add on top of a vm
- * context anyway. `timeout` guards against runaway loops in the synchronous
- * script; `harden()` (above) closes the constructor-chain escape; disabling
- * `codeGeneration.strings` blocks dynamic `eval`/`Function(str)` as well.
+ * not a specific implementation. In the desktop app this runs in the
+ * Electron *main* process — a separate OS process from the sandboxed
+ * renderer, which is a stronger boundary than same-process isolated-vm would
+ * add on top of a vm context anyway; the CLI runner calls it directly since
+ * there's no renderer/main split to bridge over IPC there. `timeout` guards
+ * against runaway loops in the synchronous script; `harden()` (above) closes
+ * the constructor-chain escape; disabling `codeGeneration.strings` blocks
+ * dynamic `eval`/`Function(str)` as well.
  */
 export function runScript(code: string, context: ScriptContext): ScriptResult {
   const logs: string[] = []

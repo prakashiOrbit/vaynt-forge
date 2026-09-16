@@ -1,10 +1,12 @@
 /**
- * Types only — the actual sandboxed execution needs Node's `vm` module and a
- * real process boundary, neither available in the (browser-only) renderer or
- * in this Electron-free package. The runtime lives in
- * `apps/desktop/src/main/scriptSandbox.ts` and is reached over IPC
- * (`window.vayntforge.scripts.run`), the same split `packages/sqlite` uses
- * for Node-only storage code.
+ * Types only, kept separate from `./sandbox` so anything importing these
+ * shapes (e.g. renderer-side code building a `ScriptContext`) doesn't pull
+ * in `node:vm`. The actual sandboxed execution (`./sandbox`, Node-only, same
+ * pattern as `../networking/http-client`) needs Node's `vm` module, so the
+ * browser-only renderer reaches it over IPC (`window.vayntforge.scripts.run`
+ * → `apps/desktop/src/main/ipc.ts` → this package's `scripting/sandbox`)
+ * instead of importing it directly; the CLI runner calls it directly since
+ * there's no renderer/main split to bridge there.
  */
 export interface ScriptContext {
   request: {

@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { SQLiteStorage } from '../src/index'
-import type { Environment, RequestModel, SecretCodec } from '../../engine/src/index'
-import { withSecretCodec, seedProvider, DEFAULT_APP_SETTINGS } from '../../engine/src/index'
+import type { Environment, RequestModel, SecretCodec } from '@vayntforge/engine'
+import { withSecretCodec, seedProvider, DEFAULT_APP_SETTINGS } from '@vayntforge/engine'
 
 /** Open a store, wrap it with the codec, and seed the demo (as the app does). */
 function seededStore(path: string): {

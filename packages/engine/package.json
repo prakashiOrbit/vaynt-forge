@@ -17,6 +17,14 @@
     "./networking/oauth2-client": {
       "types": "./dist/networking/oauth2-client.d.ts",
       "default": "./dist/networking/oauth2-client.js"
+    },
+    "./scripting/sandbox": {
+      "types": "./dist/scripting/sandbox.d.ts",
+      "default": "./dist/scripting/sandbox.js"
+    },
+    "./runner/collection-runner": {
+      "types": "./dist/runner/collection-runner.d.ts",
+      "default": "./dist/runner/collection-runner.js"
     }
   },
   "scripts": {
