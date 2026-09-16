@@ -23,3 +23,25 @@ jobs:
       - run: npm run test
 
       - run: npm run lint
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+      - run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # Real Playwright Electron E2E suite against the actual built app (see
+      # apps/desktop/e2e/) — a separate job from typecheck/test/lint since it's
+      # slower and drives a real Electron window, which needs a virtual
+      # display on a headless Linux runner.
+      - run: xvfb-run -a npm run test:e2e --workspace=@vayntforge/desktop

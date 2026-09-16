@@ -46,3 +46,6 @@ Thumbs.db
 
 # Test
 coverage/
+test-results/
+playwright-report/
+blob-report/

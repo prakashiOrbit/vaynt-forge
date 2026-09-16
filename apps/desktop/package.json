@@ -11,6 +11,7 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test": "tsx --test test/*.test.ts",
+    "test:e2e": "electron-vite build && playwright test -c e2e/playwright.config.ts",
     "pack": "electron-vite build && electron-builder --dir",
     "release": "electron-vite build && electron-builder --mac --win --linux",
     "release:publish": "electron-vite build && electron-builder --mac --win --linux --publish always"
@@ -35,6 +36,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.0.0",
     "@types/react": "^19.3.0",
