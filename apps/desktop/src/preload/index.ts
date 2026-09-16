@@ -15,6 +15,7 @@ const api: VayntForgeApi = {
   dialog: {
     openFile: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_FILE) as Promise<string | null>,
     openProtoFile: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_PROTO_FILE) as Promise<string | null>,
+    openCertFile: (kind) => ipcRenderer.invoke(IPC.DIALOG_OPEN_CERT_FILE, kind) as Promise<string | null>,
   },
   network: {
     execute: (request, scopes) => ipcRenderer.invoke(IPC.NETWORK_EXECUTE, request, scopes),

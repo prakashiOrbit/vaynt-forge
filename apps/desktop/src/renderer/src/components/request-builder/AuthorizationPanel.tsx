@@ -285,6 +285,16 @@ export function AuthorizationPanel({ draft, update, resolveTemplate }: RequestPa
           />
           <TextField label="Region" value={auth.region} onChange={(region) => setAuth({ ...auth, region })} placeholder="us-east-1" />
           <TextField label="Service" value={auth.service} onChange={(service) => setAuth({ ...auth, service })} placeholder="execute-api" />
+          <TextField
+            label="Session Token"
+            value={auth.sessionToken ?? ''}
+            onChange={(sessionToken) => setAuth({ ...auth, sessionToken: sessionToken || undefined })}
+            type="password"
+            placeholder="Only for temporary STS credentials"
+          />
+          <p className="col-span-2 text-[11px] text-faint">
+            Signs the request with a real AWS Signature Version 4 (SigV4).
+          </p>
         </div>
       )}
 

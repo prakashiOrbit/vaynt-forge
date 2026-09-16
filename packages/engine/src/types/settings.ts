@@ -24,6 +24,31 @@ export interface CertificateEntry {
   addedAt: number
 }
 
+/**
+ * A client (mTLS) certificate — presented BY this app TO a server that
+ * requires one, unlike {@link CertificateEntry} (a CA this app trusts).
+ * Matched to a request by exact hostname (and port, when set) before
+ * sending, same as Postman's client-certificate manager. Either
+ * `certPath`+`keyPath` (PEM) or `pfxPath` (PKCS#12) is set, never both —
+ * paths are stored (not file content) and read fresh at send time, the same
+ * pattern binary request bodies already use.
+ */
+export interface ClientCertificateEntry {
+  id: string
+  host: string
+  /** When set, must also match the request's resolved port; omitted matches any port on `host`. */
+  port?: number
+  /** Absolute path to a PEM-encoded client certificate file. */
+  certPath?: string
+  /** Absolute path to a PEM-encoded private key file (paired with `certPath`). */
+  keyPath?: string
+  /** Absolute path to a PFX/PKCS#12 bundle file (mutually exclusive with `certPath`/`keyPath`). */
+  pfxPath?: string
+  /** Passphrase for an encrypted private key or PFX bundle. */
+  passphrase?: string
+  addedAt: number
+}
+
 /** Per-workspace application settings, persisted as the `settings` row. */
 export interface AppSettings {
   theme: ThemePreference
@@ -35,6 +60,7 @@ export interface AppSettings {
   proxy: ProxyConfig
   editor: EditorSettings
   certificates: CertificateEntry[]
+  clientCertificates: ClientCertificateEntry[]
 }
 
 export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
@@ -54,4 +80,5 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   proxy: { enabled: false, host: '', port: 8080 },
   editor: DEFAULT_EDITOR_SETTINGS,
   certificates: [],
+  clientCertificates: [],
 }

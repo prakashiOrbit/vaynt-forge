@@ -39,6 +39,7 @@ function mergeSettingsWithDefaults(saved: AppSettings | undefined): AppSettings 
     proxy: { ...DEFAULT_APP_SETTINGS.proxy, ...saved?.proxy },
     editor: { ...DEFAULT_APP_SETTINGS.editor, ...saved?.editor },
     certificates: saved?.certificates ?? DEFAULT_APP_SETTINGS.certificates,
+    clientCertificates: saved?.clientCertificates ?? DEFAULT_APP_SETTINGS.clientCertificates,
   }
 }
 
@@ -235,6 +236,10 @@ export class StorageService implements StorageChannel {
   async saveSettings(workspaceId: string, settings: AppSettings): Promise<AppSettings> {
     this.provider.saveSettings(workspaceId, settings)
     return this.provider.getSettings(workspaceId) ?? settings
+  }
+  /** Real-request path (network:execute) reads proxy/certificate settings through this, synchronously, same as `getCookieJar`. */
+  getSettingsSync(workspaceId: string): AppSettings {
+    return mergeSettingsWithDefaults(this.provider.getSettings(workspaceId))
   }
 
   // ── Notifications ─────────────────────────────────────────

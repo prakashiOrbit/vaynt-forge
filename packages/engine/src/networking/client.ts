@@ -1,11 +1,18 @@
 import type { RequestModel } from '../types/request'
 import type { ResponseModel, TimingBreakdown } from '../types/response'
+import type { ClientCertificateEntry, ProxyConfig } from '../types/settings'
 import type { ResolutionContext } from '../types/variables'
 import { resolveRequest } from './resolve-request'
 
 export interface ExecutionContext {
   environment?: string
   variables: ResolutionContext
+  /** The requesting workspace's proxy setting — real requests route through it when `enabled`. */
+  proxy?: ProxyConfig
+  /** Extra CA certificates (raw PEM) the workspace trusts, added alongside Node's default trust store. */
+  caCertificates?: string[]
+  /** Client (mTLS) certificates the workspace has configured — matched to the request's host/port before sending. */
+  clientCertificates?: ClientCertificateEntry[]
 }
 
 /** Core contract — the real client (undici etc.) implements this in Sprint 6. */

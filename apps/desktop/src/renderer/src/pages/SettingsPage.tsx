@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   Database,
   FileJson,
+  FolderOpen,
   Globe,
   Info,
   Keyboard,
@@ -16,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Button, ConfirmDialog, toast } from '@vayntforge/ui'
-import type { CertificateEntry, ThemePreference } from '@vayntforge/engine'
+import type { CertificateEntry, ClientCertificateEntry, ThemePreference } from '@vayntforge/engine'
 import type { UpdateStatus } from '../../../shared/types'
 import { useSession } from '../stores/session'
 import { useActiveWorkspaceData, useData } from '../stores/data'
@@ -111,6 +112,13 @@ export function SettingsPage() {
   const [confirmClearCookies, setConfirmClearCookies] = useState(false)
   const [certName, setCertName] = useState('')
   const [certPem, setCertPem] = useState('')
+  const [clientCertMode, setClientCertMode] = useState<'cert-key' | 'pfx'>('cert-key')
+  const [clientCertHost, setClientCertHost] = useState('')
+  const [clientCertPort, setClientCertPort] = useState('')
+  const [clientCertPath, setClientCertPath] = useState('')
+  const [clientKeyPath, setClientKeyPath] = useState('')
+  const [clientPfxPath, setClientPfxPath] = useState('')
+  const [clientCertPassphrase, setClientCertPassphrase] = useState('')
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ state: 'idle' })
 
   useEffect(() => {
@@ -133,6 +141,44 @@ export function SettingsPage() {
 
   const removeCertificate = (id: string) => {
     patch({ certificates: settings.certificates.filter((c) => c.id !== id) })
+  }
+
+  const browseCertFile = async (kind: 'cert' | 'key' | 'pfx') => {
+    const path = await window.vayntforge.dialog.openCertFile(kind)
+    if (!path) return
+    if (kind === 'cert') setClientCertPath(path)
+    else if (kind === 'key') setClientKeyPath(path)
+    else setClientPfxPath(path)
+  }
+
+  const resetClientCertForm = () => {
+    setClientCertHost('')
+    setClientCertPort('')
+    setClientCertPath('')
+    setClientKeyPath('')
+    setClientPfxPath('')
+    setClientCertPassphrase('')
+  }
+
+  const addClientCertificate = () => {
+    if (!clientCertHost.trim()) return
+    if (clientCertMode === 'cert-key' && (!clientCertPath || !clientKeyPath)) return
+    if (clientCertMode === 'pfx' && !clientPfxPath) return
+    const entry: ClientCertificateEntry = {
+      id: crypto.randomUUID(),
+      host: clientCertHost.trim(),
+      port: clientCertPort.trim() ? Number(clientCertPort) : undefined,
+      ...(clientCertMode === 'cert-key' ? { certPath: clientCertPath, keyPath: clientKeyPath } : { pfxPath: clientPfxPath }),
+      passphrase: clientCertPassphrase || undefined,
+      addedAt: Date.now(),
+    }
+    patch({ clientCertificates: [...settings.clientCertificates, entry] })
+    resetClientCertForm()
+    toast.success('Client certificate added', entry.host)
+  }
+
+  const removeClientCertificate = (id: string) => {
+    patch({ clientCertificates: settings.clientCertificates.filter((c) => c.id !== id) })
   }
 
   return (
@@ -303,6 +349,109 @@ export function SettingsPage() {
                 />
                 <Button size="sm" onClick={addCertificate} disabled={!certName.trim() || !certPem.trim()}>
                   Add certificate
+                </Button>
+              </div>
+
+              <h2 className="mt-8 mb-3 text-[14px] font-semibold text-text">Client Certificates</h2>
+              <p className="mb-3 text-[11px] text-faint">
+                Presented to a server that requires mTLS — matched to a request by host (and port, if set) before sending.
+              </p>
+              {settings.clientCertificates.length === 0 ? (
+                <p className="py-3 text-center text-[12px] text-faint">No client certificates added.</p>
+              ) : (
+                <div className="mb-4 overflow-hidden rounded-md border border-border">
+                  {settings.clientCertificates.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between border-b border-border px-3 py-2 last:border-b-0">
+                      <div>
+                        <span className="font-mono text-[12px] text-text">
+                          {c.host}
+                          {c.port !== undefined ? `:${c.port}` : ''}
+                        </span>
+                        <span className="ml-2 text-[11px] text-faint">{c.pfxPath ? 'PFX' : 'CRT + KEY'}</span>
+                      </div>
+                      <button
+                        onClick={() => removeClientCertificate(c.id)}
+                        aria-label={`Remove client certificate for ${c.host}`}
+                        className="text-faint hover:text-err"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="space-y-2 rounded-md border border-border p-3">
+                <div className="grid grid-cols-[1fr_100px] gap-2">
+                  <input
+                    value={clientCertHost}
+                    onChange={(e) => setClientCertHost(e.target.value)}
+                    placeholder="Host, e.g. api.internal.acme.dev"
+                    className={`${textInput} w-full`}
+                  />
+                  <input
+                    value={clientCertPort}
+                    onChange={(e) => setClientCertPort(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Port"
+                    className={`${textInput} w-full`}
+                  />
+                </div>
+
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setClientCertMode('cert-key')}
+                    className={`rounded px-2 py-1 text-[11px] font-medium ${clientCertMode === 'cert-key' ? 'bg-accent/20 text-accent' : 'text-faint hover:text-text'}`}
+                  >
+                    CRT + KEY
+                  </button>
+                  <button
+                    onClick={() => setClientCertMode('pfx')}
+                    className={`rounded px-2 py-1 text-[11px] font-medium ${clientCertMode === 'pfx' ? 'bg-accent/20 text-accent' : 'text-faint hover:text-text'}`}
+                  >
+                    PFX
+                  </button>
+                </div>
+
+                {clientCertMode === 'cert-key' ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => void browseCertFile('cert')}>
+                        <FolderOpen className="h-3.5 w-3.5" /> Choose CRT file
+                      </Button>
+                      <span className="truncate text-[11px] text-faint">{clientCertPath || 'No file selected'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => void browseCertFile('key')}>
+                        <FolderOpen className="h-3.5 w-3.5" /> Choose KEY file
+                      </Button>
+                      <span className="truncate text-[11px] text-faint">{clientKeyPath || 'No file selected'}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => void browseCertFile('pfx')}>
+                      <FolderOpen className="h-3.5 w-3.5" /> Choose PFX file
+                    </Button>
+                    <span className="truncate text-[11px] text-faint">{clientPfxPath || 'No file selected'}</span>
+                  </div>
+                )}
+
+                <input
+                  value={clientCertPassphrase}
+                  onChange={(e) => setClientCertPassphrase(e.target.value)}
+                  type="password"
+                  placeholder="Passphrase (if the key/PFX is encrypted)"
+                  className={`${textInput} w-full`}
+                />
+
+                <Button
+                  size="sm"
+                  onClick={addClientCertificate}
+                  disabled={
+                    !clientCertHost.trim() ||
+                    (clientCertMode === 'cert-key' ? !clientCertPath || !clientKeyPath : !clientPfxPath)
+                  }
+                >
+                  Add client certificate
                 </Button>
               </div>
             </>

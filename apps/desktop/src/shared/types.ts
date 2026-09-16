@@ -166,6 +166,8 @@ export interface VayntForgeApi {
     openFile(): Promise<string | null>
     /** Native "open file" picker filtered to `.proto` files, for gRPC external-target import. */
     openProtoFile(): Promise<string | null>
+    /** Native "open file" picker filtered by kind, for client-certificate settings. */
+    openCertFile(kind: 'cert' | 'key' | 'pfx'): Promise<string | null>
   }
   network: {
     /**

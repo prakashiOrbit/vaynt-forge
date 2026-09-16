@@ -1,15 +1,19 @@
 import { readFile } from 'node:fs/promises'
 import { lookup } from 'node:dns/promises'
 import { performance } from 'node:perf_hooks'
-import { Agent, request as undiciRequest } from 'undici'
+import { rootCertificates } from 'node:tls'
+import { Agent, ProxyAgent, request as undiciRequest } from 'undici'
+import type { Dispatcher } from 'undici'
 import type { RequestModel } from '../types/request'
 import type { RedirectEntry, ResponseCookie, ResponseModel } from '../types/response'
+import type { ClientCertificateEntry } from '../types/settings'
 import type { ResolutionContext } from '../types/variables'
 import { resolveVariables } from '../variables/resolver'
 import { resolveRequest } from './resolve-request'
 import type { ExecutionContext, RequestClient } from './client'
 import { buildDigestHeader, parseDigestChallenge } from './digest'
 import { buildOAuth1Header } from './oauth1'
+import { buildSigV4Headers } from './sigv4'
 
 const resolveVar = (template: string, ctx: ResolutionContext): string => resolveVariables(template, ctx).value
 
@@ -47,6 +51,17 @@ function flattenHeaders(headers: Record<string, string | string[] | undefined>):
   return out
 }
 
+function effectivePort(url: URL): number {
+  if (url.port) return Number(url.port)
+  return url.protocol === 'https:' ? 443 : 80
+}
+
+/** Exact-hostname match (plus port, when the entry specifies one) — same matching model Postman's client-certificate manager uses. */
+function findClientCertificate(entries: ClientCertificateEntry[] | undefined, url: URL): ClientCertificateEntry | undefined {
+  const port = effectivePort(url)
+  return entries?.find((e) => e.host === url.hostname && (e.port === undefined || e.port === port))
+}
+
 /**
  * Real `undici`-based client — genuinely performs the HTTP call, follows
  * redirects itself (to capture the full chain), and reports timing. This is
@@ -64,6 +79,11 @@ function flattenHeaders(headers: Record<string, string | string[] | undefined>):
  * diagnostics_channel events whose shape has shifted across versions, so
  * `connect`/`tls` are reported as 0 and that time is folded into `wait`
  * instead of fabricating a split we can't actually measure.
+ *
+ * `ctx.proxy`/`ctx.caCertificates` (the workspace's Settings) genuinely
+ * route the request through a real `ProxyAgent` and extend the real TLS
+ * trust store — the caller (`ipc.ts`) is responsible for looking those up
+ * per workspace and passing them in.
  */
 export class UndiciRequestClient implements RequestClient {
   async execute(request: RequestModel, ctx: ExecutionContext): Promise<ResponseModel> {
@@ -93,6 +113,26 @@ export class UndiciRequestClient implements RequestClient {
         })
       }
 
+      // AWS SigV4 needs `node:crypto` (HMAC-SHA256) to sign — same reasoning
+      // as OAuth 1.0a above: computed here, pre-send, no challenge round trip.
+      if (request.auth.type === 'aws') {
+        const auth = request.auth
+        Object.assign(
+          resolved.headers,
+          buildSigV4Headers({
+            method: resolved.method,
+            url: resolved.url,
+            headers: resolved.headers,
+            body: resolved.body,
+            accessKey: resolveVar(auth.accessKey, ctx.variables),
+            secretKey: resolveVar(auth.secretKey, ctx.variables),
+            sessionToken: auth.sessionToken ? resolveVar(auth.sessionToken, ctx.variables) : undefined,
+            region: resolveVar(auth.region, ctx.variables),
+            service: resolveVar(auth.service, ctx.variables),
+          })
+        )
+      }
+
       const bodyBuf =
         request.body.type === 'binary' && request.body.source
           ? await readFile(request.body.source)
@@ -108,7 +148,38 @@ export class UndiciRequestClient implements RequestClient {
         dnsMs = 0 // IP literal, or lookup failed — the real request below will surface the real error
       }
 
-      const dispatcher = new Agent({ connect: { rejectUnauthorized: request.settings.sslVerify } })
+      // A client (mTLS) certificate matched by exact host[:port] — read fresh
+      // from disk each send (settings only ever store the path), same as a
+      // binary request body already does. Not caught here: a missing/
+      // unreadable file should surface as a real, readable error rather than
+      // a silent fall-through to a confusing bare TLS handshake failure.
+      let clientCertOptions: { cert?: Buffer; key?: Buffer; pfx?: Buffer; passphrase?: string } = {}
+      const matchedCert = findClientCertificate(ctx.clientCertificates, new URL(resolved.url))
+      if (matchedCert?.pfxPath) {
+        clientCertOptions = { pfx: await readFile(matchedCert.pfxPath), passphrase: matchedCert.passphrase }
+      } else if (matchedCert?.certPath && matchedCert.keyPath) {
+        clientCertOptions = {
+          cert: await readFile(matchedCert.certPath),
+          key: await readFile(matchedCert.keyPath),
+          passphrase: matchedCert.passphrase,
+        }
+      }
+
+      // Extra CA certs (raw PEM) the workspace explicitly trusts get added
+      // alongside — not instead of — Node's own bundled trust store, since
+      // passing any `ca` array to `tls.connect` replaces the default set
+      // rather than extending it.
+      const connectOptions = {
+        rejectUnauthorized: request.settings.sslVerify,
+        ...(ctx.caCertificates && ctx.caCertificates.length > 0
+          ? { ca: [...rootCertificates, ...ctx.caCertificates] }
+          : {}),
+        ...clientCertOptions,
+      }
+      const dispatcher: Dispatcher =
+        ctx.proxy?.enabled && ctx.proxy.host
+          ? new ProxyAgent({ uri: `http://${ctx.proxy.host}:${ctx.proxy.port}`, connect: connectOptions })
+          : new Agent({ connect: connectOptions })
       const redirects: RedirectEntry[] = []
       let currentUrl = resolved.url
       let currentMethod = resolved.method

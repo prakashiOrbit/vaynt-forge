@@ -134,6 +134,20 @@ export function registerIpcHandlers(storage: StorageService): void {
     return result.filePaths[0]
   })
 
+  ipcMain.handle(IPC.DIALOG_OPEN_CERT_FILE, async (event, kind: 'cert' | 'key' | 'pfx') => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const filters =
+      kind === 'cert'
+        ? [{ name: 'Certificates', extensions: ['crt', 'pem', 'cer'] }]
+        : kind === 'key'
+          ? [{ name: 'Private Keys', extensions: ['key', 'pem'] }]
+          : [{ name: 'PKCS#12', extensions: ['pfx', 'p12'] }]
+    const opts = { properties: ['openFile' as const], filters }
+    const result = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
   // Real network execution — this is what the renderer's Send button calls
   // (see sendRequest.ts). Genuine undici HTTP, not a simulation.
   //
@@ -145,7 +159,13 @@ export function registerIpcHandlers(storage: StorageService): void {
   // steps are skipped entirely when the request already has an explicit
   // Cookie header, and skipped/no-op when the response sets no cookies.
   ipcMain.handle(IPC.NETWORK_EXECUTE, async (event, request: RequestModel, scopes: VariableScopes) => {
-    const ctx = { variables: collectVariables(scopes) }
+    const workspaceSettings = storage.getSettingsSync(request.workspaceId)
+    const ctx = {
+      variables: collectVariables(scopes),
+      proxy: workspaceSettings.proxy,
+      caCertificates: workspaceSettings.certificates.map((c) => c.pem),
+      clientCertificates: workspaceSettings.clientCertificates,
+    }
     const hasExplicitCookieHeader = request.headers.some((h) => h.enabled && h.key.toLowerCase() === 'cookie')
 
     let requestToSend = request

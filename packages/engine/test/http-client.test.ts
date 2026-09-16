@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import net from 'node:net'
 import { createHash, createHmac } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
 import { UndiciRequestClient } from '../src/networking/http-client.ts'
@@ -399,4 +400,296 @@ test('OAuth 1.0a: PLAINTEXT signature is the raw consumer-secret&token-secret pa
   } finally {
     await server.close()
   }
+})
+
+test('AWS SigV4: signs the request with a real signature matching a manual recomputation', async () => {
+  let seenHeaders: http.IncomingHttpHeaders = {}
+  let seenAuth = ''
+  const server = await startServer((req, res) => {
+    seenHeaders = req.headers
+    seenAuth = req.headers.authorization ?? ''
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'raws1', workspaceId: 'w1', url: `${server.url}/items?b=2&a=1`, method: 'POST' })
+    req.body = { type: 'raw', language: 'json', content: '{"x":1}' }
+    req.auth = { type: 'aws', accessKey: 'AKIDEXAMPLE', secretKey: 'secretkey123', region: 'us-east-1', service: 'execute-api' }
+    await new UndiciRequestClient().execute(req, emptyCtx)
+
+    assert.match(seenAuth, /^AWS4-HMAC-SHA256 /)
+    const amzDate = (seenHeaders['x-amz-date'] as string) ?? ''
+    const contentSha256 = (seenHeaders['x-amz-content-sha256'] as string) ?? ''
+    assert.equal(contentSha256, createHash('sha256').update('{"x":1}').digest('hex'))
+
+    const params: Record<string, string> = {}
+    for (const m of seenAuth.matchAll(/(\w+)=([^\s,]+)/g)) {
+      if (m[1] === 'AWS4-HMAC-SHA256') continue
+      const key = m[1]
+      if (key) params[key] = (m[2] ?? '').replace(/,$/, '')
+    }
+    assert.match(params.Credential ?? '', /^AKIDEXAMPLE\//)
+    // Real SigV4 signs whatever headers are actually present (here, the
+    // client's own default Content-Type/User-Agent alongside the required
+    // host/x-amz-* ones) — assert against the real SignedHeaders list rather
+    // than a hand-picked subset, then use exactly that list (and the real
+    // header values) to independently recompute the signature.
+    const signedHeaderNames = (params.SignedHeaders ?? '').split(';')
+    assert.ok(signedHeaderNames.includes('host'))
+    assert.ok(signedHeaderNames.includes('x-amz-date'))
+    assert.ok(signedHeaderNames.includes('x-amz-content-sha256'))
+    assert.deepEqual(signedHeaderNames, [...signedHeaderNames].sort())
+
+    const canonicalHeaders = signedHeaderNames.map((name) => `${name}:${String(seenHeaders[name]).trim()}\n`).join('')
+    const dateStamp = amzDate.slice(0, 8)
+    const canonicalRequest = ['POST', '/items', 'a=1&b=2', canonicalHeaders, signedHeaderNames.join(';'), contentSha256].join('\n')
+    const credentialScope = `${dateStamp}/us-east-1/execute-api/aws4_request`
+    const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, createHash('sha256').update(canonicalRequest).digest('hex')].join('\n')
+    const hmac = (key: Buffer | string, data: string) => createHmac('sha256', key).update(data).digest()
+    const kDate = hmac('AWS4secretkey123', dateStamp)
+    const kRegion = hmac(kDate, 'us-east-1')
+    const kService = hmac(kRegion, 'execute-api')
+    const kSigning = hmac(kService, 'aws4_request')
+    const expectedSignature = hmac(kSigning, stringToSign).toString('hex')
+
+    assert.equal(params.Signature, expectedSignature)
+  } finally {
+    await server.close()
+  }
+})
+
+test('AWS SigV4: includes X-Amz-Security-Token for temporary STS credentials', async () => {
+  let seenToken = ''
+  let seenAuth = ''
+  const server = await startServer((req, res) => {
+    seenToken = (req.headers['x-amz-security-token'] as string) ?? ''
+    seenAuth = req.headers.authorization ?? ''
+    res.writeHead(200)
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'raws2', workspaceId: 'w1', url: `${server.url}/x` })
+    req.auth = {
+      type: 'aws',
+      accessKey: 'AKID',
+      secretKey: 'secret',
+      region: 'us-west-2',
+      service: 's3',
+      sessionToken: 'FQoGZXIvYXdzEB',
+    }
+    await new UndiciRequestClient().execute(req, emptyCtx)
+    assert.equal(seenToken, 'FQoGZXIvYXdzEB')
+    assert.match(seenAuth, /SignedHeaders=[\w;-]*x-amz-security-token/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('AWS SigV4: resolves {{variables}} inside credentials', async () => {
+  let seenAuth = ''
+  const server = await startServer((req, res) => {
+    seenAuth = req.headers.authorization ?? ''
+    res.writeHead(200)
+    res.end('{}')
+  })
+  try {
+    const req = createDraftRequest({ id: 'raws3', workspaceId: 'w1', url: `${server.url}/x` })
+    req.auth = { type: 'aws', accessKey: '{{ak}}', secretKey: '{{sk}}', region: 'us-east-1', service: 'execute-api' }
+    const ctx = { variables: collectVariables({ environment: [{ key: 'ak', value: 'RealAccessKey' }, { key: 'sk', value: 'RealSecretKey' }] }) }
+    await new UndiciRequestClient().execute(req, ctx)
+    assert.match(seenAuth, /Credential=RealAccessKey\//)
+  } finally {
+    await server.close()
+  }
+})
+
+/* -------------------------------- Proxy support -------------------------------- */
+
+// Real forward proxies (corporate proxies, Charles, mitmproxy, Squid) tunnel
+// via HTTP CONNECT for both http:// and https:// targets, and so does
+// undici's ProxyAgent by default (`proxyTunnel: true`) — this test proxy
+// mirrors that instead of the simpler (but non-representative) "rewrite the
+// request line" forward-proxy style.
+function startProxyServer(): Promise<{ port: number; hits: string[]; close(): Promise<void> }> {
+  const hits: string[] = []
+  const server = http.createServer((_req, res) => {
+    res.writeHead(400)
+    res.end('CONNECT only')
+  })
+  server.on('connect', (req, clientSocket, head) => {
+    hits.push(req.url ?? '')
+    const [hostname, portStr] = (req.url ?? '').split(':')
+    const serverSocket = net.connect(Number(portStr) || 80, hostname, () => {
+      clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
+      serverSocket.write(head)
+      serverSocket.pipe(clientSocket)
+      clientSocket.pipe(serverSocket)
+    })
+    serverSocket.on('error', () => clientSocket.destroy())
+  })
+  return new Promise((resolve) => {
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address() as AddressInfo
+      resolve({ port, hits, close: () => new Promise((r) => server.close(() => r())) })
+    })
+  })
+}
+
+test('proxy: a real request genuinely tunnels through the configured proxy, not directly to the target', async () => {
+  const target = await startServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ viaProxy: true }))
+  })
+  const proxy = await startProxyServer()
+  try {
+    const req = createDraftRequest({ id: 'rproxy1', workspaceId: 'w1', url: `${target.url}/probe` })
+    const ctx = { variables: collectVariables({}), proxy: { enabled: true, host: '127.0.0.1', port: proxy.port } }
+    const res = await new UndiciRequestClient().execute(req, ctx)
+    assert.equal(res.status, 200)
+    assert.deepEqual(res.body, { viaProxy: true })
+    assert.equal(proxy.hits.length, 1)
+    assert.equal(proxy.hits[0], new URL(target.url).host)
+  } finally {
+    await proxy.close()
+    await target.close()
+  }
+})
+
+test('proxy: disabled proxy config does not route through it', async () => {
+  const target = await startServer((req, res) => {
+    res.writeHead(200)
+    res.end('{}')
+  })
+  const proxy = await startProxyServer()
+  try {
+    const req = createDraftRequest({ id: 'rproxy2', workspaceId: 'w1', url: `${target.url}/probe` })
+    const ctx = { variables: collectVariables({}), proxy: { enabled: false, host: '127.0.0.1', port: proxy.port } }
+    const res = await new UndiciRequestClient().execute(req, ctx)
+    assert.equal(res.status, 200)
+    assert.equal(proxy.hits.length, 0)
+  } finally {
+    await proxy.close()
+    await target.close()
+  }
+})
+
+/* ----------------------------- Custom CA certificates -------------------------- */
+
+test('caCertificates: a self-signed server fails without the cert, succeeds once it is trusted', async () => {
+  const { execFileSync } = await import('node:child_process')
+  const { mkdtempSync, readFileSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const https = await import('node:https')
+
+  const dir = mkdtempSync(join(tmpdir(), 'vf-ca-test-'))
+  const keyPath = join(dir, 'key.pem')
+  const certPath = join(dir, 'cert.pem')
+  execFileSync('openssl', [
+    'req', '-x509', '-newkey', 'rsa:2048', '-keyout', keyPath, '-out', certPath,
+    '-days', '1', '-nodes', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1',
+  ])
+  const key = readFileSync(keyPath, 'utf8')
+  const cert = readFileSync(certPath, 'utf8')
+
+  const server = https.createServer({ key, cert }, (_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ secure: true }))
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = (server.address() as AddressInfo).port
+  const url = `https://127.0.0.1:${port}/secure`
+
+  try {
+    const req = createDraftRequest({ id: 'rca1', workspaceId: 'w1', url })
+    const withoutCa = await new UndiciRequestClient().execute(req, { variables: collectVariables({}) })
+    assert.equal(withoutCa.status, 0)
+    assert.ok(withoutCa.error, 'expected an untrusted-cert error with no custom CA configured')
+
+    const withCa = await new UndiciRequestClient().execute(req, { variables: collectVariables({}), caCertificates: [cert] })
+    assert.equal(withCa.status, 200)
+    assert.deepEqual(withCa.body, { secure: true })
+  } finally {
+    await new Promise((r) => server.close(() => r(undefined)))
+  }
+})
+
+/* ---------------------------- Client (mTLS) certificates ------------------------ */
+
+test('clientCertificates: a server requiring mTLS rejects without a matching cert, succeeds once one is configured', async () => {
+  const { execFileSync } = await import('node:child_process')
+  const { mkdtempSync, readFileSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const https = await import('node:https')
+
+  const dir = mkdtempSync(join(tmpdir(), 'vf-mtls-test-'))
+  const serverKeyPath = join(dir, 'server-key.pem')
+  const serverCertPath = join(dir, 'server-cert.pem')
+  const clientKeyPath = join(dir, 'client-key.pem')
+  const clientCertPath = join(dir, 'client-cert.pem')
+
+  execFileSync('openssl', [
+    'req', '-x509', '-newkey', 'rsa:2048', '-keyout', serverKeyPath, '-out', serverCertPath,
+    '-days', '1', '-nodes', '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1',
+  ])
+  execFileSync('openssl', [
+    'req', '-x509', '-newkey', 'rsa:2048', '-keyout', clientKeyPath, '-out', clientCertPath,
+    '-days', '1', '-nodes', '-subj', '/CN=test-client',
+  ])
+
+  const serverKey = readFileSync(serverKeyPath, 'utf8')
+  const serverCert = readFileSync(serverCertPath, 'utf8')
+  const clientCert = readFileSync(clientCertPath, 'utf8')
+
+  // Trusting the self-signed client cert as its own CA is the standard way
+  // to test mTLS without standing up a real certificate authority.
+  const server = https.createServer(
+    { key: serverKey, cert: serverCert, requestCert: true, rejectUnauthorized: true, ca: [clientCert] },
+    (_req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ mtls: true }))
+    }
+  )
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+  const port = (server.address() as AddressInfo).port
+  const url = `https://127.0.0.1:${port}/secure`
+
+  try {
+    // Server-cert trust is a separate concern (covered by the caCertificates
+    // test above) — turned off here to isolate the client-cert requirement.
+    const req = createDraftRequest({ id: 'rmtls1', workspaceId: 'w1', url })
+    req.settings.sslVerify = false
+
+    const without = await new UndiciRequestClient().execute(req, { variables: collectVariables({}) })
+    assert.equal(without.status, 0)
+    assert.ok(without.error, 'expected a handshake failure with no client cert configured')
+
+    const withCert = await new UndiciRequestClient().execute(req, {
+      variables: collectVariables({}),
+      clientCertificates: [
+        { id: 'c1', host: '127.0.0.1', port, certPath: clientCertPath, keyPath: clientKeyPath, addedAt: Date.now() },
+      ],
+    })
+    assert.equal(withCert.status, 200)
+    assert.deepEqual(withCert.body, { mtls: true })
+  } finally {
+    await new Promise((r) => server.close(() => r(undefined)))
+  }
+})
+
+test('clientCertificates: a port-scoped entry does not match a different port', async () => {
+  const req = createDraftRequest({ id: 'rmtls2', workspaceId: 'w1', url: 'https://127.0.0.1:9999/x' })
+  req.settings.sslVerify = false
+  const res = await new UndiciRequestClient().execute(req, {
+    variables: collectVariables({}),
+    clientCertificates: [
+      { id: 'c2', host: '127.0.0.1', port: 1234, certPath: '/nonexistent/cert.pem', keyPath: '/nonexistent/key.pem', addedAt: Date.now() },
+    ],
+  })
+  // Wrong port means no match, so no attempt to read the (nonexistent) cert
+  // files — the request should fail with a real connection error, not an
+  // ENOENT from a file it should never have tried to open.
+  assert.equal(res.status, 0)
+  assert.doesNotMatch(res.error?.message ?? '', /ENOENT|no such file/i)
 })

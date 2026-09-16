@@ -5,6 +5,8 @@ export const IPC = {
   DIALOG_OPEN_FILE: 'dialog:openFile',
   /** File picker filtered to `.proto` files, for gRPC external-target import. */
   DIALOG_OPEN_PROTO_FILE: 'dialog:openProtoFile',
+  /** File picker filtered by kind (cert/key/pfx), for client-certificate settings. */
+  DIALOG_OPEN_CERT_FILE: 'dialog:openCertFile',
   /** Real undici-based execution — what the renderer's Send button calls. */
   NETWORK_EXECUTE: 'network:execute',
   /** Real RFC 6749 client-credentials token fetch — a genuine POST to the configured Token URL. */

@@ -91,6 +91,8 @@ export interface AwsAuthConfig {
   secretKey: string
   region: string
   service: string
+  /** STS temporary-credential session token — sent as `X-Amz-Security-Token` alongside the SigV4 signature. */
+  sessionToken?: string
 }
 
 export interface CustomAuthConfig {
