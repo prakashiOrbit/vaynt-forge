@@ -8,6 +8,7 @@ import type {
   OpenApiTag,
   ParsedOpenApiSpec,
 } from './types.js'
+import { normalizeSwagger2 } from './swagger2.js'
 
 type Json = Record<string, unknown>
 
@@ -46,25 +47,34 @@ function resolveRef(node: unknown, root: Json, depth = 0): unknown {
   return node
 }
 
+/** OpenAPI 3.1 dropped `nullable: true` in favor of JSON Schema 2020-12's `type: [X, "null"]`
+ * arrays, so `schema.type` can be a bare string (3.0/Swagger 2.0) or an array (3.1) — this
+ * normalizes either into the list of non-null type names to check membership against. */
+function schemaTypes(resolved: Json): string[] {
+  const type = resolved['type']
+  if (Array.isArray(type)) return type.filter((t): t is string => typeof t === 'string' && t !== 'null')
+  return typeof type === 'string' ? [type] : []
+}
+
 /** Synthesizes a plausible example value from a (possibly ref'd) JSON Schema. */
 function synthesizeExample(schema: unknown, root: Json, depth = 0): unknown {
   const resolved = resolveRef(schema, root)
   if (depth > 6 || !isJson(resolved)) return null
   if ('example' in resolved) return resolved['example']
-  const type = resolved['type']
-  if (type === 'object' || (!type && isJson(resolved['properties']))) {
+  const types = schemaTypes(resolved)
+  if (types.includes('object') || (types.length === 0 && isJson(resolved['properties']))) {
     const props = isJson(resolved['properties']) ? resolved['properties'] : {}
     const out: Json = {}
     for (const [key, propSchema] of Object.entries(props)) out[key] = synthesizeExample(propSchema, root, depth + 1)
     return out
   }
-  if (type === 'array') {
+  if (types.includes('array')) {
     const items = resolved['items']
     return items ? [synthesizeExample(items, root, depth + 1)] : []
   }
-  if (type === 'string') return (resolved['enum'] as unknown[] | undefined)?.[0] ?? 'string'
-  if (type === 'integer' || type === 'number') return 0
-  if (type === 'boolean') return true
+  if (types.includes('string')) return (resolved['enum'] as unknown[] | undefined)?.[0] ?? 'string'
+  if (types.includes('integer') || types.includes('number')) return 0
+  if (types.includes('boolean')) return true
   return null
 }
 
@@ -100,7 +110,7 @@ function parseParameters(paramsNode: unknown, root: Json): OpenApiParameter[] {
       in: (param['in'] as OpenApiParameter['in']) ?? 'query',
       required: Boolean(param['required']),
       description: typeof param['description'] === 'string' ? param['description'] : undefined,
-      schemaType: schema && typeof schema['type'] === 'string' ? (schema['type'] as string) : undefined,
+      schemaType: schema ? schemaTypes(schema).join(' | ') || undefined : undefined,
       example: schema ? JSON.stringify(synthesizeExample(schema, root)) : undefined,
     }
   })
@@ -119,7 +129,9 @@ function parseResponses(responsesNode: unknown, root: Json): OpenApiResponse[] {
   })
 }
 
-export function parseOpenApiSpec(doc: Json): ParsedOpenApiSpec {
+export function parseOpenApiSpec(rawDoc: Json): ParsedOpenApiSpec {
+  const sourceDialect: ParsedOpenApiSpec['sourceDialect'] = rawDoc.swagger === '2.0' ? 'swagger2' : 'openapi'
+  const doc = sourceDialect === 'swagger2' ? normalizeSwagger2(rawDoc) : rawDoc
   const info = isJson(doc.info) ? doc.info : {}
   const tagsRaw = Array.isArray(doc.tags) ? doc.tags : []
   const tags: OpenApiTag[] = tagsRaw
@@ -185,5 +197,6 @@ export function parseOpenApiSpec(doc: Json): ParsedOpenApiSpec {
     securitySchemes,
     tags: allTags,
     operations,
+    sourceDialect,
   }
 }

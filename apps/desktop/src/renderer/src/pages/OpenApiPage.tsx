@@ -268,6 +268,11 @@ export function OpenApiPage() {
                 <div className="mt-0.5 flex items-center gap-2 text-[11px] text-faint">
                   <span>v{spec.info.version}</span>
                   {baseUrl && <span className="font-mono">{baseUrl}</span>}
+                  {spec.sourceDialect === 'swagger2' && (
+                    <StatusBadge tone="neutral" title="This spec was written in Swagger 2.0 and normalized into OpenAPI 3.0 on import">
+                      Swagger 2.0 → converted
+                    </StatusBadge>
+                  )}
                 </div>
                 {spec.info.description && <p className="mt-1.5 max-w-xl text-[12px] leading-relaxed text-muted">{spec.info.description}</p>}
               </div>

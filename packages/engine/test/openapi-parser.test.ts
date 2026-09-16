@@ -80,3 +80,48 @@ test('resolves a local $ref in a response schema', () => {
 test('malformed input throws rather than silently returning garbage', () => {
   assert.throws(() => parseOpenApiText('{ this is not valid json or yaml: ['))
 })
+
+test('a native OpenAPI document is tagged with sourceDialect "openapi"', () => {
+  const doc = parseOpenApiText(JSON.stringify({ openapi: '3.0.3', info: { title: 'X', version: '1' }, paths: {} }))
+  const spec = parseOpenApiSpec(doc)
+  assert.equal(spec.sourceDialect, 'openapi')
+})
+
+test('OpenAPI 3.1-style `type: [X, "null"]` schemas synthesize the same example an equivalent 3.0 `nullable: true` schema would', () => {
+  const doc = parseOpenApiText(
+    JSON.stringify({
+      openapi: '3.1.0',
+      info: { title: 'X', version: '1' },
+      paths: {
+        '/widgets/{id}': {
+          get: {
+            operationId: 'getWidget',
+            parameters: [{ name: 'id', in: 'path', required: true, schema: { type: ['string', 'null'] } }],
+            responses: {
+              '200': {
+                description: 'ok',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: ['object', 'null'],
+                      properties: {
+                        count: { type: ['integer', 'null'] },
+                        tags: { type: ['array', 'null'], items: { type: 'string' } },
+                        active: { type: ['boolean', 'null'] },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+  )
+  const spec = parseOpenApiSpec(doc)
+  const op = spec.operations[0]!
+  assert.equal(op.parameters[0]?.schemaType, 'string')
+  const example = JSON.parse(op.responses[0]!.content[0]!.example ?? '{}')
+  assert.deepEqual(example, { count: 0, tags: ['string'], active: true })
+})

@@ -134,7 +134,14 @@ function OverviewSection({ spec }: { spec: ReturnType<typeof parseOpenApiSpec> }
     <div className="max-w-2xl space-y-5 p-6">
       <div>
         <h1 className="text-[18px] font-semibold text-text">{spec.info.title}</h1>
-        <p className="mt-0.5 text-[12px] text-faint">Version {spec.info.version}</p>
+        <div className="mt-0.5 flex items-center gap-2 text-[12px] text-faint">
+          <span>Version {spec.info.version}</span>
+          {spec.sourceDialect === 'swagger2' && (
+            <StatusBadge tone="neutral" title="This spec was written in Swagger 2.0 and normalized into OpenAPI 3.0 on import">
+              Swagger 2.0 → converted
+            </StatusBadge>
+          )}
+        </div>
       </div>
       {spec.info.description && <p className="text-[13px] leading-relaxed text-muted">{spec.info.description}</p>}
 

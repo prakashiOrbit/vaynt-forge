@@ -1,8 +1,10 @@
 /**
- * A parsed, UI-ready view of an OpenAPI 3.0.x document — deliberately not a
- * full OpenAPI type system (no Swagger 2.0, no 3.1-only features, `$ref` only
- * resolved for local `#/components/schemas/*` references). Covers what the
- * Explorer/Documentation viewer/generators actually need.
+ * A parsed, UI-ready view of an OpenAPI 3.0.x/3.1.x or Swagger 2.0 document —
+ * deliberately not a full OpenAPI type system (`$ref` only resolved for local
+ * references, no 3.1 `webhooks`/`components.pathItems`). Swagger 2.0 sources
+ * are normalized (see `swagger2.ts`) into this same shape before parsing, so
+ * `sourceDialect` is the only trace of which format the raw text was in.
+ * Covers what the Explorer/Documentation viewer/generators actually need.
  */
 export interface OpenApiInfo {
   title: string
@@ -67,6 +69,8 @@ export interface ParsedOpenApiSpec {
   securitySchemes: OpenApiSecurityScheme[]
   tags: OpenApiTag[]
   operations: OpenApiOperation[]
+  /** Which raw format this was parsed from — `swagger2` sources were normalized before parsing (see `swagger2.ts`). */
+  sourceDialect: 'openapi' | 'swagger2'
 }
 
 /** The persisted entity — we store the raw text and re-parse on load, not a
