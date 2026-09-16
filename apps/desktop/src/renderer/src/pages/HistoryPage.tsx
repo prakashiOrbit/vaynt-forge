@@ -66,7 +66,7 @@ export function HistoryPage() {
   const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
   const { openContextMenu } = useContextMenu()
 
-  const { history, requests, collections, environments, globalVariables } = useActiveWorkspaceData()
+  const { history, requests, collections, foldersByCollection, environments, globalVariables } = useActiveWorkspaceData()
   const deleteHistoryEntry = useData((s) => s.deleteHistoryEntry)
   const clearHistory = useData((s) => s.clearHistory)
 
@@ -168,6 +168,8 @@ export function HistoryPage() {
         environmentId: activeEnvironmentId,
         globalVariables,
         environment,
+        collections,
+        foldersByCollection,
       })
       toast.success('Replayed', `${draft.method} ${draft.url}`)
     } catch (err) {

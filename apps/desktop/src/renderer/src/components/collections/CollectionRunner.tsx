@@ -28,7 +28,7 @@ export function CollectionRunner({
   onClose(): void
   onOpenRequestBuilder(): void
 }) {
-  const { collections, requests, environments, globalVariables } = useActiveWorkspaceData()
+  const { collections, foldersByCollection, requests, environments, globalVariables } = useActiveWorkspaceData()
   const activeWorkspaceId = useSession((s) => s.activeWorkspaceId)
   const activeEnvironmentId = useSession((s) => s.activeEnvironmentId)
   const openTab = useSession((s) => s.openTab)
@@ -113,7 +113,14 @@ export function CollectionRunner({
       let cursor = 0
       const runOne = async (req: RequestModel) => {
         if (delayMs > 0) await sleep(delayMs)
-        const { response } = await sendRequest(req, globalVariables, environment, [...extractedVars, ...rowVars])
+        const { response } = await sendRequest(
+          req,
+          globalVariables,
+          environment,
+          [...extractedVars, ...rowVars],
+          collections,
+          foldersByCollection
+        )
 
         const rule = ruleFor(req.id)
         if (rule?.enabled && rule.jsonPath && rule.variableName) {

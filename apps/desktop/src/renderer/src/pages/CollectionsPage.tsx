@@ -7,6 +7,7 @@ import {
   Link2,
   PencilLine,
   Play,
+  Settings,
   Trash2,
   Upload,
   FolderTree,
@@ -28,6 +29,7 @@ import { TreeActionsContext } from '../components/collections/treeActions'
 import { MoveDialog } from '../components/collections/MoveDialog'
 import { CollectionRunner } from '../components/collections/CollectionRunner'
 import { ImportCollectionModal } from '../components/collections/ImportCollectionModal'
+import { EntitySettingsModal } from '../components/collections/EntitySettingsModal'
 import { useKeyboardShortcut } from '../lib/shortcuts'
 
 function downloadText(filename: string, text: string, type = 'application/json') {
@@ -63,6 +65,7 @@ export function CollectionsPage() {
   const [moveTarget, setMoveTarget] = useState<RequestModel | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [runnerCollectionId, setRunnerCollectionId] = useState<string | null>(null)
+  const [settingsTarget, setSettingsTarget] = useState<{ kind: 'collection' | 'folder'; id: string } | null>(null)
 
   // No per-row selection concept in this tree yet, so Cmd+Shift+R runs the
   // first collection — documented as such on the Keyboard Shortcuts screen.
@@ -108,6 +111,8 @@ export function CollectionsPage() {
         environmentId: activeEnvironmentId,
         globalVariables,
         environment: activeEnv,
+        collections,
+        foldersByCollection,
       })
       toast.success(`${response.status} ${response.statusText}`, `${request.name} · ${response.timeMs}ms`)
     } catch (err) {
@@ -254,6 +259,11 @@ export function CollectionsPage() {
         },
         { label: 'Duplicate', icon: <Copy className="h-3.5 w-3.5" />, onSelect: () => void duplicateCollection(data.id) },
         { label: 'Run', icon: <Play className="h-3.5 w-3.5" />, onSelect: () => setRunnerCollectionId(data.id) },
+        {
+          label: 'Settings',
+          icon: <Settings className="h-3.5 w-3.5" />,
+          onSelect: () => setSettingsTarget({ kind: 'collection', id: data.id }),
+        },
         { label: 'Export → Vaynt Forge JSON', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'native') },
         { label: 'Export → Postman v2.1', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'postman') },
         { label: 'Export → OpenAPI 3.0', icon: <Download className="h-3.5 w-3.5" />, onSelect: () => exportCollectionAs(data.id, 'openapi') },
@@ -276,6 +286,11 @@ export function CollectionsPage() {
           label: 'Rename',
           icon: <PencilLine className="h-3.5 w-3.5" />,
           onSelect: () => treeRef.current?.get(data.id)?.edit(),
+        },
+        {
+          label: 'Settings',
+          icon: <Settings className="h-3.5 w-3.5" />,
+          onSelect: () => setSettingsTarget({ kind: 'folder', id: data.id }),
         },
         { separator: true },
         {
@@ -338,6 +353,19 @@ export function CollectionsPage() {
         </div>
       </div>
       <ImportCollectionModal open={importOpen} onClose={() => setImportOpen(false)} workspaceId={activeWorkspaceId} />
+      <EntitySettingsModal
+        open={Boolean(settingsTarget)}
+        onClose={() => setSettingsTarget(null)}
+        kind={settingsTarget?.kind ?? 'collection'}
+        collection={settingsTarget?.kind === 'collection' ? collections.find((c) => c.id === settingsTarget.id) : undefined}
+        folder={
+          settingsTarget?.kind === 'folder'
+            ? Object.values(foldersByCollection)
+                .flat()
+                .find((f) => f.id === settingsTarget.id)
+            : undefined
+        }
+      />
 
       <div ref={containerRef} className="min-h-0 flex-1">
         {collections.length === 0 ? (

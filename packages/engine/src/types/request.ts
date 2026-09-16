@@ -10,6 +10,7 @@ export interface KeyValuePair {
 }
 
 export type AuthType =
+  | 'inherit'
   | 'none'
   | 'apiKey'
   | 'bearer'
@@ -20,6 +21,11 @@ export type AuthType =
   | 'jwt'
   | 'aws'
   | 'custom'
+
+/** Uses the nearest parent folder's (or the collection's) auth — resolved before a real request ever goes out; never reaches `applyAuth` with anything to contribute itself. */
+export interface InheritAuthConfig {
+  type: 'inherit'
+}
 
 export interface NoAuthConfig {
   type: 'none'
@@ -101,6 +107,7 @@ export interface CustomAuthConfig {
 }
 
 export type AuthConfig =
+  | InheritAuthConfig
   | NoAuthConfig
   | ApiKeyAuthConfig
   | BearerAuthConfig

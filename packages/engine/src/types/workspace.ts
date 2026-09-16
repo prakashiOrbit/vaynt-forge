@@ -1,3 +1,6 @@
+import type { AuthConfig, RequestScripts } from './request'
+import type { Variable } from './variables'
+
 export interface Workspace {
   id: string
   name: string
@@ -24,6 +27,12 @@ export interface Collection {
   description?: string
   /** Optional — collections created before Sprint 7 have none; treat as `[]`. */
   chainRules?: ChainRule[]
+  /** A request whose own auth is `{type:'inherit'}` falls back to this when no folder in its chain sets one. Never itself `'inherit'` — a collection has no parent to inherit from. */
+  auth?: AuthConfig
+  /** Resolved into the `collection` variable scope (between `global` and `environment`) for every request in this collection. */
+  variables?: Variable[]
+  /** Run before/after every request in this collection, ahead of any folder's and the request's own — see `resolveAncestorScripts`. */
+  scripts?: RequestScripts
   createdAt: number
   updatedAt: number
 }
@@ -34,6 +43,10 @@ export interface Folder {
   name: string
   parentFolderId?: string
   requestIds: string[]
+  /** Falls back to a parent folder's, then the collection's, when this is unset or itself `{type:'inherit'}`. */
+  auth?: AuthConfig
+  /** Run before/after every request in this folder, between the collection's and the request's own. */
+  scripts?: RequestScripts
 }
 
 export interface HistoryEntry {

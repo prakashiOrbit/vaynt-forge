@@ -57,7 +57,7 @@ export function RequestBuilderPage() {
   const responseHeight = useSession((s) => s.responseHeight)
   const setResponseHeight = useSession((s) => s.setResponseHeight)
 
-  const { requests, environments, globalVariables } = useActiveWorkspaceData()
+  const { requests, environments, globalVariables, collections, foldersByCollection } = useActiveWorkspaceData()
   const draft = useRequestDraft(activeTabId)
   const [subTab, setSubTab] = useState<SubTab>('params')
   const [confirmDestructiveSend, setConfirmDestructiveSend] = useState(false)
@@ -137,6 +137,8 @@ export function RequestBuilderPage() {
         environmentId: activeEnvironmentId,
         globalVariables,
         environment: activeEnv,
+        collections,
+        foldersByCollection,
       }).catch((err) => {
         useResponses.getState().setSending(activeTabId, false)
         toast.error('Send failed', err instanceof Error ? err.message : String(err))
@@ -208,6 +210,8 @@ export function RequestBuilderPage() {
       environmentId: activeEnvironmentId,
       globalVariables,
       environment: activeEnv,
+      collections,
+      foldersByCollection,
     })
       .then(({ preScript, postScript }) => {
         if (preScript?.error) toast.error('Pre-request script error', preScript.error)
@@ -271,7 +275,14 @@ export function RequestBuilderPage() {
         <Tabs tabs={SUB_TABS} active={subTab} onChange={(id) => setSubTab(id)} />
         <div className="min-h-0 flex-1 overflow-auto">
           {subTab === 'params' && <ParamsPanel {...panelProps} />}
-          {subTab === 'auth' && <AuthorizationPanel {...panelProps} />}
+          {subTab === 'auth' && (
+            <AuthorizationPanel
+              auth={draft.auth}
+              setAuth={(auth) => update((d) => ({ ...d, auth }))}
+              resolveTemplate={resolveTemplate}
+              showInherit={Boolean(draft.collectionId)}
+            />
+          )}
           {subTab === 'headers' && <HeadersPanel {...panelProps} />}
           {subTab === 'body' && <BodyPanel {...panelProps} />}
           {subTab === 'scripts' && <ScriptsPanel {...panelProps} />}

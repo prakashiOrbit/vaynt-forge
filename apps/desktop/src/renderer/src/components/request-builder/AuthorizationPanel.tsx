@@ -3,7 +3,8 @@ import { Loader2 } from 'lucide-react'
 import type { AuthConfig, AuthType, OAuth2Config } from '@vayntforge/engine'
 import { Button } from '@vayntforge/ui'
 import { SelectField, TextField } from './fields'
-import type { RequestPanelProps } from './types'
+
+const INHERIT_OPTION: { value: AuthType; label: string } = { value: 'inherit', label: 'Inherit from Parent' }
 
 const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
   { value: 'none', label: 'No Auth' },
@@ -20,6 +21,8 @@ const AUTH_OPTIONS: { value: AuthType; label: string }[] = [
 
 function defaultAuthFor(type: AuthType): AuthConfig {
   switch (type) {
+    case 'inherit':
+      return { type: 'inherit' }
     case 'none':
       return { type: 'none' }
     case 'apiKey':
@@ -117,9 +120,19 @@ function TokenFetchStatus({
   )
 }
 
-export function AuthorizationPanel({ draft, update, resolveTemplate }: RequestPanelProps) {
-  const auth = draft.auth
-  const setAuth = (next: AuthConfig) => update((d) => ({ ...d, auth: next }))
+export function AuthorizationPanel({
+  auth,
+  setAuth,
+  resolveTemplate,
+  showInherit = false,
+}: {
+  auth: AuthConfig
+  setAuth(next: AuthConfig): void
+  resolveTemplate?: (template: string) => string
+  /** A request or a folder can inherit from its parent; a collection is the inheritance root, so it never gets this option. */
+  showInherit?: boolean
+}) {
+  const options = showInherit ? [INHERIT_OPTION, ...AUTH_OPTIONS] : AUTH_OPTIONS
 
   return (
     <div className="space-y-4 p-3">
@@ -127,8 +140,15 @@ export function AuthorizationPanel({ draft, update, resolveTemplate }: RequestPa
         label="Type"
         value={auth.type}
         onChange={(type) => setAuth(defaultAuthFor(type))}
-        options={AUTH_OPTIONS}
+        options={options}
       />
+
+      {auth.type === 'inherit' && (
+        <p className="text-[12px] text-faint">
+          Uses the nearest parent folder's auth, or the collection's if no folder in between sets one. Falls back to
+          no auth if nothing up the chain is configured.
+        </p>
+      )}
 
       {auth.type === 'none' && (
         <p className="text-[12px] text-faint">This request does not use authorization.</p>

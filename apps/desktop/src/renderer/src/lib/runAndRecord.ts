@@ -1,4 +1,4 @@
-import type { Environment, RequestModel, Variable } from '@vayntforge/engine'
+import type { Collection, Environment, Folder, RequestModel, Variable } from '@vayntforge/engine'
 import { useData } from '../stores/data'
 import { useResponses } from '../stores/responses'
 import { sendRequest, type KV, type SendResult } from './sendRequest'
@@ -18,10 +18,13 @@ export async function runAndRecordRequest(params: {
   globalVariables: Variable[]
   environment: Environment | undefined
   extraVariables?: KV[]
+  /** Resolves the request's collection/folder inheritance chain (auth, collection variables, ancestor scripts) — omit for a context with no collection data in scope. */
+  collections?: Collection[]
+  foldersByCollection?: Record<string, Folder[]>
 }): Promise<SendResult> {
-  const { request, tabId, workspaceId, environmentId, globalVariables, environment, extraVariables } = params
+  const { request, tabId, workspaceId, environmentId, globalVariables, environment, extraVariables, collections, foldersByCollection } = params
   useResponses.getState().setSending(tabId, true)
-  const result = await sendRequest(request, globalVariables, environment, extraVariables)
+  const result = await sendRequest(request, globalVariables, environment, extraVariables, collections, foldersByCollection)
   useResponses.getState().setResult(tabId, result.response, { pre: result.preScript, post: result.postScript })
   const isFailure = Boolean(result.response.error) || result.response.status >= 500
   if (isFailure) {

@@ -29,6 +29,13 @@ export function applyAuth(
     case 'none':
     case 'custom':
       return { headers: [], params: [] }
+    case 'inherit':
+      // Resolved renderer-side (see resolveEffectiveAuth in
+      // collections/inheritance.ts) before a request ever reaches a real
+      // network call — a literal 'inherit' reaching here means nothing
+      // resolved it (e.g. Compare/Debugger, which don't wire collection
+      // context through), so it safely contributes nothing, same as 'none'.
+      return { headers: [], params: [] }
     case 'apiKey': {
       const key = resolve(auth.key)
       const value = resolve(auth.value)

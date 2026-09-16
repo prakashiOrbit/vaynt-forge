@@ -1,6 +1,7 @@
 export * from './types'
 export * from './util/id'
 export * from './variables/resolver'
+export * from './collections/inheritance'
 export * from './networking/client'
 export * from './networking/auth'
 export * from './networking/resolve-request'
