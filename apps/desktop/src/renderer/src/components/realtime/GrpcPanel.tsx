@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Play, Radio, Send, Square } from 'lucide-react'
+import { FolderOpen, Play, Radio, Send, Square, Unplug } from 'lucide-react'
 import { Button } from '@vayntforge/ui'
-import { DEMO_PROTO, grpcIntrospection } from '@vayntforge/engine'
-import type { GrpcMethodKind } from '@vayntforge/engine'
+import type { GrpcMethodKind, GrpcService } from '@vayntforge/engine'
 import { useRealtime } from '../../stores/realtime'
 
 const KIND_LABEL: Record<GrpcMethodKind, string> = {
@@ -12,18 +11,49 @@ const KIND_LABEL: Record<GrpcMethodKind, string> = {
   'bidi-stream': 'bidi',
 }
 
+/** A readable stand-in for literal .proto source when a target was discovered via reflection (no source file to show). */
+function renderServiceSummary(services: GrpcService[]): string {
+  if (services.length === 0) return ''
+  return (
+    `// Reconstructed from server reflection — this target has no .proto\n` +
+    `// source file, so this lists what reflection reported instead.\n\n` +
+    services
+      .map(
+        (svc) =>
+          `service ${svc.name} {\n` +
+          svc.methods
+            .map((m) => {
+              const req = m.kind === 'client-stream' || m.kind === 'bidi-stream' ? `stream ${m.requestType}` : m.requestType
+              const res = m.kind === 'server-stream' || m.kind === 'bidi-stream' ? `stream ${m.responseType}` : m.responseType
+              return `  rpc ${m.name}(${req}) returns (${res});`
+            })
+            .join('\n') +
+          `\n}`
+      )
+      .join('\n\n')
+  )
+}
+
 export function GrpcPanel({ tabId }: { tabId: string }) {
   const grpc = useRealtime((s) => s.getGrpc(tabId))
-  const grpcConnect = useRealtime((s) => s.grpcConnect)
+  const grpcStartDemo = useRealtime((s) => s.grpcStartDemo)
+  const grpcConnectExternal = useRealtime((s) => s.grpcConnectExternal)
+  const grpcDisconnect = useRealtime((s) => s.grpcDisconnect)
   const grpcCall = useRealtime((s) => s.grpcCall)
   const grpcBidiStart = useRealtime((s) => s.grpcBidiStart)
   const grpcBidiSend = useRealtime((s) => s.grpcBidiSend)
   const grpcBidiEnd = useRealtime((s) => s.grpcBidiEnd)
   const bindGrpc = useRealtime((s) => s.bindGrpc)
 
-  const services = useMemo(() => grpcIntrospection(), [])
-  const allMethods = useMemo(() => services.flatMap((svc) => svc.methods.map((m) => ({ ...m, service: svc.name }))), [services])
-  const [method, setMethod] = useState(allMethods[0]?.name ?? 'PlaceOrder')
+  const [address, setAddress] = useState(grpc.address || '127.0.0.1:50051')
+  const [tls, setTls] = useState(grpc.tls)
+  const [protoPath, setProtoPath] = useState<string | null>(null)
+
+  const allMethods = useMemo(
+    () => grpc.services.flatMap((svc) => svc.methods.map((m) => ({ ...m, service: svc.name }))),
+    [grpc.services]
+  )
+  const [method, setMethod] = useState<string | undefined>(allMethods[0]?.name)
   const selected = allMethods.find((m) => m.name === method) ?? allMethods[0]
   const [input, setInput] = useState(
     '{\n  "customer_id": "usr_1",\n  "items": [\n    { "sku": "acme-1", "quantity": 2 }\n  ]\n}'
@@ -35,9 +65,24 @@ export function GrpcPanel({ tabId }: { tabId: string }) {
     bindGrpc()
   }, [bindGrpc])
 
-  const handleStart = async () => {
-    const addr = await window.vayntforge.realtime.grpc.start()
-    grpcConnect(tabId, addr)
+  useEffect(() => {
+    const first = allMethods[0]
+    if (first && !allMethods.some((m) => m.name === method)) {
+      setMethod(first.name)
+    }
+  }, [allMethods, method])
+
+  const handleStartDemo = () => {
+    void grpcStartDemo(tabId)
+  }
+
+  const handleConnect = () => {
+    void grpcConnectExternal(tabId, address, tls, protoPath ?? undefined)
+  }
+
+  const handleBrowseProto = async () => {
+    const path = await window.vayntforge.dialog.openProtoFile()
+    if (path) setProtoPath(path)
   }
 
   const parseMessage = (): unknown => {
@@ -66,18 +111,67 @@ export function GrpcPanel({ tabId }: { tabId: string }) {
     }
   }
 
+  if (!grpc.connected) {
+    return (
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-3 border-b border-border px-3 py-2">
+          <Radio className="h-3.5 w-3.5 text-faint" />
+          <span className="text-[12px] font-medium text-text">gRPC</span>
+        </div>
+        <div className="flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-md space-y-4">
+            <div>
+              <div className="mb-1 text-[11px] font-semibold uppercase text-faint">Connect to a real target</div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="host:port"
+                  className="flex-1 rounded border border-border bg-bg px-2 py-1 font-mono text-[12px] text-text"
+                />
+                <label className="flex items-center gap-1 text-[11px] text-faint">
+                  <input type="checkbox" checked={tls} onChange={(e) => setTls(e.target.checked)} />
+                  TLS
+                </label>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={handleBrowseProto}>
+                  <FolderOpen className="h-3 w-3" /> Browse .proto…
+                </Button>
+                <span className="truncate font-mono text-[11px] text-faint">
+                  {protoPath ? protoPath.split('/').pop() : 'none selected — falls back to server reflection'}
+                </span>
+              </div>
+              <Button size="sm" className="mt-3 w-full" onClick={handleConnect} disabled={grpc.connecting || !address}>
+                {grpc.connecting ? 'Connecting…' : 'Connect'}
+              </Button>
+              {grpc.error && <div className="mt-2 text-[11px] text-err">{grpc.error}</div>}
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-faint">
+              <div className="h-px flex-1 bg-border" />
+              or
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <Button size="sm" variant="ghost" className="w-full" onClick={handleStartDemo} disabled={grpc.connecting}>
+              Start in-app demo server
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b border-border px-3 py-2">
         <Radio className="h-3.5 w-3.5 text-faint" />
         <span className="text-[12px] font-medium text-text">gRPC</span>
-        <span className="font-mono text-[11px] text-faint">{grpc.address || '127.0.0.1'}</span>
+        <span className="font-mono text-[11px] text-faint">
+          {grpc.address}
+          {grpc.tls ? ' (tls)' : ''}
+        </span>
         <div className="ml-auto flex items-center gap-1">
-          {!grpc.connected ? (
-            <Button size="sm" onClick={handleStart}>
-              Start server
-            </Button>
-          ) : selected?.kind === 'bidi-stream' && grpc.bidiOpen ? (
+          {selected?.kind === 'bidi-stream' && grpc.bidiOpen ? (
             <>
               <Button size="sm" onClick={handleCall} disabled={calling}>
                 <Send className="h-3 w-3" /> Send
@@ -87,10 +181,13 @@ export function GrpcPanel({ tabId }: { tabId: string }) {
               </Button>
             </>
           ) : (
-            <Button size="sm" onClick={handleCall} disabled={calling}>
+            <Button size="sm" onClick={handleCall} disabled={calling || !selected}>
               <Play className="h-3 w-3" /> {selected?.kind === 'bidi-stream' ? 'Start stream' : 'Call'}
             </Button>
           )}
+          <Button size="sm" variant="ghost" onClick={() => grpcDisconnect(tabId)} title="Disconnect">
+            <Unplug className="h-3 w-3" />
+          </Button>
         </div>
       </div>
       <div className="grid min-h-0 flex-1 grid-cols-[220px_1fr_1fr] gap-px bg-border">
@@ -114,10 +211,12 @@ export function GrpcPanel({ tabId }: { tabId: string }) {
             </button>
           </div>
           {leftView === 'proto' ? (
-            <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-muted">{DEMO_PROTO}</pre>
+            <pre className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap font-mono text-[11px] text-muted">
+              {grpc.protoSource ?? renderServiceSummary(grpc.services)}
+            </pre>
           ) : (
             <div className="min-h-0 flex-1 overflow-auto">
-              {services.map((svc) => (
+              {grpc.services.map((svc) => (
                 <div key={svc.fullName} className="mb-2">
                   <div className="font-mono text-[11px] font-semibold text-text">{svc.name}</div>
                   <div className="mt-0.5 space-y-0.5 pl-2">

@@ -26,6 +26,10 @@ import type {
   GrpcStreamResult,
   GrpcFrame,
   GrpcMetadataArg,
+  GrpcService,
+  WsMessageFormat,
+  WsPushEvent,
+  SsePushEvent,
   MockLogEntry,
   PerformanceRun,
   PerfTestConfig,
@@ -159,6 +163,8 @@ export interface VayntForgeApi {
   dialog: {
     /** Native "open file" picker — returns the chosen path, or null if cancelled. */
     openFile(): Promise<string | null>
+    /** Native "open file" picker filtered to `.proto` files, for gRPC external-target import. */
+    openProtoFile(): Promise<string | null>
   }
   network: {
     /**
@@ -182,8 +188,22 @@ export interface VayntForgeApi {
      * by the renderer tab's `channelId`.
      */
     grpc: {
-      /** Lazily starts the demo server; resolves to its `host:port`. */
-      start(): Promise<string>
+      /** Lazily starts the demo server for this tab; resolves to its `host:port` and demo service descriptors. */
+      start(channelId: string): Promise<{ address: string; services: GrpcService[]; protoSource?: string }>
+      /**
+       * Connects this tab to a real external gRPC target. With `protoPath`,
+       * loads that `.proto` file; otherwise discovers services via server
+       * reflection. Either way, all further calls for this `channelId` go to
+       * a real client built from what's found.
+       */
+      connectExternal(
+        channelId: string,
+        address: string,
+        tls: boolean,
+        protoPath?: string
+      ): Promise<{ services: GrpcService[]; protoSource?: string }>
+      /** Closes this tab's real client and forgets its target. */
+      disconnect(channelId: string): Promise<void>
       unary(
         channelId: string,
         method: string,
@@ -202,6 +222,28 @@ export interface VayntForgeApi {
       bidiEnd(channelId: string): Promise<void>
       /** Subscribe to gRPC frames; returns an unsubscribe function. */
       onFrame(callback: (channelId: string, frame: GrpcFrame) => void): () => void
+    }
+    /**
+     * Real WebSocket connections (`ws` package), one socket per renderer tab
+     * (`channelId` == tab id). Status/frame/log updates arrive through `onEvent`.
+     */
+    ws: {
+      connect(channelId: string, url: string): Promise<void>
+      send(channelId: string, text: string, format: WsMessageFormat): Promise<void>
+      ping(channelId: string): Promise<void>
+      close(channelId: string): Promise<void>
+      /** Subscribe to WebSocket events; returns an unsubscribe function. */
+      onEvent(callback: (channelId: string, event: WsPushEvent) => void): () => void
+    }
+    /**
+     * Real Server-Sent Events (streamed `undici` GET parsed as
+     * text/event-stream), one stream per renderer tab (`channelId` == tab id).
+     */
+    sse: {
+      connect(channelId: string, url: string): Promise<void>
+      close(channelId: string): Promise<void>
+      /** Subscribe to SSE events; returns an unsubscribe function. */
+      onEvent(callback: (channelId: string, event: SsePushEvent) => void): () => void
     }
   }
   mock: {

@@ -15,23 +15,43 @@ import type { StorageService } from './storageService'
 import type { VariableScopes } from '../shared/types'
 import { runScript } from './scriptSandbox'
 import {
-  ensureGrpcServer,
   grpcBidiEnd,
   grpcBidiSend,
   grpcBidiStart,
   grpcClientStream,
+  grpcConnectDemo,
+  grpcConnectExternal,
+  grpcDisconnect,
   grpcServerStream,
   grpcUnary,
 } from './grpcServer'
 import { startMockServer, stopMockServer } from './mockServerRuntime'
 import { startLoadTest, cancelLoadTest } from './loadEngine'
 import { checkForUpdates, downloadUpdate, getUpdateStatus, quitAndInstall } from './updater'
-import type { GrpcMetadataArg, MockServer, OAuth2Config, PerfTestConfig } from '@vayntforge/engine'
+import { wsConnect, wsSend, wsPing, wsClose } from './wsServer'
+import { sseConnect, sseClose } from './sseServer'
+import type {
+  GrpcMetadataArg,
+  MockServer,
+  OAuth2Config,
+  PerfTestConfig,
+  SsePushEvent,
+  WsMessageFormat,
+  WsPushEvent,
+} from '@vayntforge/engine'
 
 const realClient = new UndiciRequestClient()
 
 const emitTo = (event: Electron.IpcMainInvokeEvent) => (channelId: string, frame: object) => {
   event.sender.send(IPC.GRPC_FRAME, channelId, { ...frame, channelId, timestamp: Date.now() })
+}
+
+const emitWs = (event: Electron.IpcMainInvokeEvent) => (channelId: string, evt: WsPushEvent) => {
+  event.sender.send(IPC.WS_EVENT, channelId, evt)
+}
+
+const emitSse = (event: Electron.IpcMainInvokeEvent) => (channelId: string, evt: SsePushEvent) => {
+  event.sender.send(IPC.SSE_EVENT, channelId, evt)
 }
 
 /**
@@ -104,6 +124,14 @@ export function registerIpcHandlers(storage: StorageService): void {
     return result.filePaths[0]
   })
 
+  ipcMain.handle(IPC.DIALOG_OPEN_PROTO_FILE, async (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const opts = { properties: ['openFile' as const], filters: [{ name: 'Protocol Buffers', extensions: ['proto'] }] }
+    const result = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
   // Real network execution — this is what the renderer's Send button calls
   // (see sendRequest.ts). Genuine undici HTTP, not a simulation.
   //
@@ -162,11 +190,21 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   // Sprint 9 — the in-app gRPC demo server. Server-stream/bidi frames are
   // pushed back to the initiating window over IPC.GRPC_FRAME.
-  ipcMain.handle(IPC.GRPC_START, async (event) => {
-    const emit = emitTo(event)
-    const address = await ensureGrpcServer()
-    emit('server', { kind: 'ready', method: 'server', message: { address } })
-    return address
+  ipcMain.handle(IPC.GRPC_START, async (_event, channelId: string) => {
+    return grpcConnectDemo(channelId)
+  })
+
+  // Sprint 15 — a real external `host:port` gRPC target, discovered via
+  // server reflection or a user-supplied `.proto` file.
+  ipcMain.handle(
+    IPC.GRPC_CONNECT_EXTERNAL,
+    async (_event, channelId: string, address: string, tls: boolean, protoPath?: string) => {
+      return grpcConnectExternal(channelId, address, tls, protoPath)
+    }
+  )
+
+  ipcMain.handle(IPC.GRPC_DISCONNECT, async (_event, channelId: string) => {
+    grpcDisconnect(channelId)
   })
 
   ipcMain.handle(
@@ -202,6 +240,36 @@ export function registerIpcHandlers(storage: StorageService): void {
 
   ipcMain.handle(IPC.GRPC_BIDI_END, async (event, channelId: string) => {
     grpcBidiEnd(channelId, (frame) => emitTo(event)(channelId, frame)).catch(() => undefined)
+  })
+
+  // Real WebSocket connections — genuine `ws` handshakes/frames/ping-pong,
+  // one socket per renderer tab (channelId), pushed back over IPC.WS_EVENT.
+  ipcMain.handle(IPC.WS_CONNECT, async (event, channelId: string, url: string) => {
+    wsConnect(channelId, url, emitWs(event))
+  })
+
+  ipcMain.handle(IPC.WS_SEND, async (event, channelId: string, text: string, format: WsMessageFormat) => {
+    wsSend(channelId, text, format, emitWs(event))
+  })
+
+  ipcMain.handle(IPC.WS_PING, async (event, channelId: string) => {
+    wsPing(channelId, emitWs(event))
+  })
+
+  ipcMain.handle(IPC.WS_CLOSE, async (event, channelId: string) => {
+    wsClose(channelId, emitWs(event))
+  })
+
+  // Real Server-Sent Events — a genuine streamed `undici` GET parsed as
+  // text/event-stream, one stream per renderer tab, pushed over IPC.SSE_EVENT.
+  ipcMain.handle(IPC.SSE_CONNECT, async (event, channelId: string, url: string) => {
+    sseConnect(channelId, url, emitSse(event)).catch((err) =>
+      emitSse(event)(channelId, { kind: 'log', line: `Error: ${err instanceof Error ? err.message : String(err)}` })
+    )
+  })
+
+  ipcMain.handle(IPC.SSE_CLOSE, async (event, channelId: string) => {
+    sseClose(channelId, emitSse(event))
   })
 
   // Sprint 10 — the in-app mock server engine (real node:http per MockServer row).

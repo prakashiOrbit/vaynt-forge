@@ -1,15 +1,21 @@
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import * as grpc from '@grpc/grpc-js'
-import type { GrpcFrame, GrpcMetadataArg } from '@vayntforge/engine'
+import * as protoLoader from '@grpc/proto-loader'
+import { GrpcReflection } from 'grpc-js-reflection-client'
+import { DEMO_GRPC_SERVICE, DEMO_PROTO } from '@vayntforge/engine'
+import type { GrpcFrame, GrpcMetadataArg, GrpcMethodKind, GrpcService } from '@vayntforge/engine'
 
 /**
- * Sprint 9 — the in-app gRPC demo server.
- *
- * The roadmap asks for a real, hosted gRPC service (not a mock), so this uses
- * `@grpc/grpc-js` with a JSON wire format (protobuf-free) — every method
- * serialises/deserialises with `JSON.parse/stringify`. The renderer talks to
- * it over IPC; server-stream and bidi frames are pushed back with a
- * per-tab `channelId`. The engine exports the matching human-readable proto
- * (DEMO_PROTO) and service descriptors for the explorer.
+ * Sprint 9 — the in-app gRPC demo server. Sprint 15 — real external targets:
+ * a renderer tab can point at any real `host:port` gRPC service, discovered
+ * either via server reflection (`grpc.reflection.v1alpha.ServerReflection`,
+ * through `grpc-js-reflection-client`) or a user-supplied `.proto` file
+ * (`@grpc/proto-loader`). Both paths resolve to a real protobuf
+ * `grpc.ServiceDefinition` fed into `grpc.makeGenericClientConstructor` —
+ * exactly what already backed the JSON-wire demo server, so the existing
+ * unary/stream/bidi call plumbing below needed no changes, only a real
+ * per-channel client instead of one hardcoded singleton.
  */
 
 const serialize = (v: unknown): Buffer => Buffer.from(JSON.stringify(v))
@@ -46,8 +52,10 @@ type HandlerCall = grpc.ServerUnaryCall<unknown, unknown> &
 
 let server: grpc.Server | null = null
 let address = ''
-let client: grpc.Client | null = null
 const bidiCalls = new Map<string, { stream: grpc.ClientDuplexStream<unknown, unknown>; method: string }>()
+
+/** One real client per renderer tab (channelId), pointed at whatever target that tab connected to (demo server or external). */
+const targets = new Map<string, { client: grpc.Client }>()
 
 type Order = Record<string, unknown>
 
@@ -121,18 +129,153 @@ export async function ensureGrpcServer(): Promise<string> {
   return address
 }
 
-/** Lazy grpc client that talks to the server from the same process. */
-const getClient = (): grpc.Client => {
-  if (!client) {
-    const Generic = grpc.makeGenericClientConstructor(
-      ORDER_SERVICE_DEFINITION as grpc.ServiceDefinition,
-      'OrderService',
-      {}
-    )
-    client = new Generic(address, grpc.credentials.createInsecure()) as unknown as grpc.Client
-    appOnQuit(() => client!.close())
+function closeClient(client: grpc.Client): void {
+  try {
+    client.close()
+  } catch {
+    /* already closed */
   }
-  return client!
+}
+
+/** Loader options that make every real target's messages plain JS objects — same shape the JSON demo wire already used. */
+const LOADER_OPTS: protoLoader.Options = { keepCase: true, longs: String, enums: String, defaults: true, oneofs: true }
+
+/** True when a proto-loader package-definition entry is a service (a map of methods), not a message/enum type descriptor. */
+function isServiceDefinitionEntry(def: unknown): def is grpc.ServiceDefinition {
+  if (!def || typeof def !== 'object') return false
+  const values = Object.values(def as Record<string, unknown>)
+  if (values.length === 0) return false
+  return values.every((v) => v !== null && typeof v === 'object' && 'path' in (v as object) && 'originalName' in (v as object))
+}
+
+/** Splits a `PackageDefinition` into browsable {@link GrpcService} descriptors and one flat, name-keyed `ServiceDefinition` for the generic client (matches this app's existing name-based method dispatch). */
+function describeServices(packageDefinition: protoLoader.PackageDefinition): { services: GrpcService[]; merged: grpc.ServiceDefinition } {
+  const merged: grpc.ServiceDefinition = {}
+  const services: GrpcService[] = []
+  for (const [fullName, def] of Object.entries(packageDefinition)) {
+    if (!isServiceDefinitionEntry(def)) continue
+    const shortName = fullName.split('.').pop() ?? fullName
+    const methods = Object.entries(def).map(([methodName, methodDefEntry]) => {
+      const kind: GrpcMethodKind = methodDefEntry.requestStream
+        ? methodDefEntry.responseStream
+          ? 'bidi-stream'
+          : 'client-stream'
+        : methodDefEntry.responseStream
+          ? 'server-stream'
+          : 'unary'
+      const reqType = (methodDefEntry as { requestType?: { type?: { name?: string } } }).requestType?.type?.name
+      const resType = (methodDefEntry as { responseType?: { type?: { name?: string } } }).responseType?.type?.name
+      return {
+        name: methodName,
+        fullName: `${fullName}/${methodName}`,
+        kind,
+        requestType: reqType ?? 'Request',
+        responseType: resType ?? 'Response',
+      }
+    })
+    services.push({ name: shortName, fullName, methods })
+    Object.assign(merged, def)
+  }
+  return { services, merged }
+}
+
+/** Names emitted by reflection that describe the reflection/health machinery itself, not the target's own API. */
+const REFLECTION_NOISE = new Set([
+  'grpc.reflection.v1alpha.ServerReflection',
+  'grpc.reflection.v1.ServerReflection',
+  'grpc.health.v1.Health',
+])
+
+export interface GrpcConnectResult {
+  services: GrpcService[]
+  protoSource?: string
+}
+
+/** Starts (or reuses) the demo server, builds a real client for it, and returns its address + descriptors. */
+export async function grpcConnectDemo(channelId: string): Promise<{ address: string } & GrpcConnectResult> {
+  const addr = await ensureGrpcServer()
+  const prev = targets.get(channelId)
+  if (prev) closeClient(prev.client)
+  const Ctor = grpc.makeGenericClientConstructor(ORDER_SERVICE_DEFINITION as grpc.ServiceDefinition, 'OrderService', {})
+  const client = new Ctor(addr, grpc.credentials.createInsecure()) as unknown as grpc.Client
+  targets.set(channelId, { client })
+  return { address: addr, services: [DEMO_GRPC_SERVICE], protoSource: DEMO_PROTO }
+}
+
+/**
+ * Connects to a real external `host:port` gRPC target — via a supplied
+ * `.proto` file, or (when omitted) server reflection. Either path resolves to
+ * a real `grpc.ServiceDefinition`; all discovered services are flattened into
+ * one client since existing call dispatch resolves methods by bare name.
+ */
+export async function grpcConnectExternal(
+  channelId: string,
+  address: string,
+  tls: boolean,
+  protoPath?: string
+): Promise<GrpcConnectResult> {
+  const credentials = tls ? grpc.credentials.createSsl() : grpc.credentials.createInsecure()
+
+  let services: GrpcService[]
+  let merged: grpc.ServiceDefinition
+  let protoSource: string | undefined
+
+  if (protoPath) {
+    const packageDefinition = protoLoader.loadSync(protoPath, { ...LOADER_OPTS, includeDirs: [path.dirname(protoPath)] })
+    ;({ services, merged } = describeServices(packageDefinition))
+    protoSource = readFileSync(protoPath, 'utf8')
+  } else {
+    const reflectionClient = new GrpcReflection(address, credentials)
+    const symbols = await reflectionClient.listServices()
+    const targetSymbols = symbols.filter((s) => !REFLECTION_NOISE.has(s))
+    if (targetSymbols.length === 0) {
+      throw new Error('Server reflection returned no services — is reflection enabled on this target, or does it need a .proto file instead?')
+    }
+    services = []
+    merged = {}
+    for (const symbol of targetSymbols) {
+      const descriptor = await reflectionClient.getDescriptorBySymbol(symbol)
+      const described = describeServices(descriptor.getPackageDefinition(LOADER_OPTS))
+      services.push(...described.services)
+      Object.assign(merged, described.merged)
+    }
+  }
+
+  if (services.length === 0) {
+    throw new Error(protoPath ? 'No services found in that .proto file' : 'No services found')
+  }
+
+  const Ctor = grpc.makeGenericClientConstructor(merged, 'ExternalService', {})
+  const client = new Ctor(address, credentials) as unknown as grpc.Client
+  const prev = targets.get(channelId)
+  if (prev) closeClient(prev.client)
+  targets.set(channelId, { client })
+
+  return { services, protoSource }
+}
+
+/** Disconnects and forgets this tab's target — closes the real client and ends any open bidi stream. */
+export function grpcDisconnect(channelId: string): void {
+  const t = targets.get(channelId)
+  if (t) {
+    closeClient(t.client)
+    targets.delete(channelId)
+  }
+  const bidi = bidiCalls.get(channelId)
+  if (bidi) {
+    try {
+      bidi.stream.end()
+    } catch {
+      /* already ended */
+    }
+    bidiCalls.delete(channelId)
+  }
+}
+
+function getClient(channelId: string): grpc.Client {
+  const t = targets.get(channelId)
+  if (!t) throw new Error('Not connected — start the demo server or connect to a target first')
+  return t.client
 }
 
 const toMetadata = (metadata?: GrpcMetadataArg[]): grpc.Metadata => {
@@ -169,9 +312,8 @@ export async function grpcUnary(
   metadata: GrpcMetadataArg[] | undefined,
   emit: EmitFrame
 ): Promise<{ message: unknown; status: string; durationMs: number }> {
-  if (!address) throw new Error('gRPC server not started')
   const started = Date.now()
-  const c = getClient()
+  const c = getClient(channelId)
   emit(channelId, { kind: 'started', method, message })
   return await new Promise((resolve, reject) => {
     unaryMethod(c, method)(message, toMetadata(metadata), (err, res) => {
@@ -194,8 +336,7 @@ export async function grpcServerStream(
   metadata: GrpcMetadataArg[] | undefined,
   emit: EmitFrame
 ): Promise<void> {
-  if (!address) throw new Error('gRPC server not started')
-  const c = getClient()
+  const c = getClient(channelId)
   emit(channelId, { kind: 'started', method, message })
   const stream = serverStreamMethod(c, method)(message, toMetadata(metadata))
   stream.on('data', (frame) => emit(channelId, { kind: 'data', method, message: frame }))
@@ -213,9 +354,8 @@ export async function grpcClientStream(
   metadata: GrpcMetadataArg[] | undefined,
   emit: EmitFrame
 ): Promise<{ message: unknown; status: string; durationMs: number }> {
-  if (!address) throw new Error('gRPC server not started')
   const started = Date.now()
-  const c = getClient()
+  const c = getClient(channelId)
   emit(channelId, { kind: 'started', method, message: messages })
   return await new Promise((resolve, reject) => {
     const call = clientStreamMethod(c, method)((err, res) => {
@@ -238,9 +378,8 @@ export async function grpcBidiStart(
   method: string,
   onBidiFrame: (frame: Omit<GrpcFrame, 'channelId' | 'timestamp'>) => void
 ): Promise<void> {
-  if (!address) throw new Error('gRPC server not started')
   if (bidiCalls.has(channelId)) return
-  const c = getClient()
+  const c = getClient(channelId)
   const stream = duplexMethod(c, method)()
   bidiCalls.set(channelId, { stream, method })
   stream.on('data', (frame) => onBidiFrame({ kind: 'data', method, message: frame }))
@@ -274,25 +413,4 @@ export async function grpcBidiEnd(
   entry.stream.end()
   onBidiFrame({ kind: 'end', method: entry.method })
   bidiCalls.delete(channelId)
-}
-
-/* ------------------------- process-lifecycle shelving ------------------------ */
-
-type LifecycleHook = () => void
-const lifecycleHooks: LifecycleHook[] = []
-let lifecycleBound = false
-
-function appOnQuit(hook: () => void): void {
-  lifecycleHooks.push(hook)
-  if (lifecycleBound) return
-  lifecycleBound = true
-  process.once('exit', () => {
-    for (const h of lifecycleHooks) {
-      try {
-        h()
-      } catch {
-        /* ignore teardown errors */
-      }
-    }
-  })
 }

@@ -14,6 +14,7 @@ const api: VayntForgeApi = {
   storage,
   dialog: {
     openFile: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_FILE) as Promise<string | null>,
+    openProtoFile: () => ipcRenderer.invoke(IPC.DIALOG_OPEN_PROTO_FILE) as Promise<string | null>,
   },
   network: {
     execute: (request, scopes) => ipcRenderer.invoke(IPC.NETWORK_EXECUTE, request, scopes),
@@ -24,7 +25,18 @@ const api: VayntForgeApi = {
   },
   realtime: {
     grpc: {
-      start: () => ipcRenderer.invoke(IPC.GRPC_START) as Promise<string>,
+      start: (channelId) =>
+        ipcRenderer.invoke(IPC.GRPC_START, channelId) as Promise<{
+          address: string
+          services: GrpcService[]
+          protoSource?: string
+        }>,
+      connectExternal: (channelId, address, tls, protoPath) =>
+        ipcRenderer.invoke(IPC.GRPC_CONNECT_EXTERNAL, channelId, address, tls, protoPath) as Promise<{
+          services: GrpcService[]
+          protoSource?: string
+        }>,
+      disconnect: (channelId) => ipcRenderer.invoke(IPC.GRPC_DISCONNECT, channelId) as Promise<void>,
       unary: (channelId, method, message, metadata) =>
         ipcRenderer.invoke(IPC.GRPC_UNARY, channelId, method, message, metadata) as Promise<GrpcUnaryResult>,
       serverStream: (channelId, method, message, metadata) =>
@@ -38,6 +50,26 @@ const api: VayntForgeApi = {
         const listener = (_e: unknown, channelId: string, frame: unknown) => callback(channelId, frame as GrpcFrame)
         ipcRenderer.on(IPC.GRPC_FRAME, listener)
         return () => ipcRenderer.removeListener(IPC.GRPC_FRAME, listener)
+      },
+    },
+    ws: {
+      connect: (channelId, url) => ipcRenderer.invoke(IPC.WS_CONNECT, channelId, url) as Promise<void>,
+      send: (channelId, text, format) => ipcRenderer.invoke(IPC.WS_SEND, channelId, text, format) as Promise<void>,
+      ping: (channelId) => ipcRenderer.invoke(IPC.WS_PING, channelId) as Promise<void>,
+      close: (channelId) => ipcRenderer.invoke(IPC.WS_CLOSE, channelId) as Promise<void>,
+      onEvent: (callback) => {
+        const listener = (_e: unknown, channelId: string, event: unknown) => callback(channelId, event as WsPushEvent)
+        ipcRenderer.on(IPC.WS_EVENT, listener)
+        return () => ipcRenderer.removeListener(IPC.WS_EVENT, listener)
+      },
+    },
+    sse: {
+      connect: (channelId, url) => ipcRenderer.invoke(IPC.SSE_CONNECT, channelId, url) as Promise<void>,
+      close: (channelId) => ipcRenderer.invoke(IPC.SSE_CLOSE, channelId) as Promise<void>,
+      onEvent: (callback) => {
+        const listener = (_e: unknown, channelId: string, event: unknown) => callback(channelId, event as SsePushEvent)
+        ipcRenderer.on(IPC.SSE_EVENT, listener)
+        return () => ipcRenderer.removeListener(IPC.SSE_EVENT, listener)
       },
     },
   },
@@ -79,6 +111,15 @@ const api: VayntForgeApi = {
   },
 }
 
-import type { GrpcFrame, GrpcStreamResult, GrpcUnaryResult, MockLogEntry, PerfSample } from '@vayntforge/engine'
+import type {
+  GrpcFrame,
+  GrpcService,
+  GrpcStreamResult,
+  GrpcUnaryResult,
+  MockLogEntry,
+  PerfSample,
+  SsePushEvent,
+  WsPushEvent,
+} from '@vayntforge/engine'
 
 contextBridge.exposeInMainWorld('vayntforge', api)

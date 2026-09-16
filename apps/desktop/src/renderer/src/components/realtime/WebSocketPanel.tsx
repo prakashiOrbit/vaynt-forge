@@ -34,10 +34,15 @@ export function WebSocketPanel({ tabId }: { tabId: string }) {
   const reconnectWs = useRealtime((s) => s.reconnectWs)
   const setWsFormat = useRealtime((s) => s.setWsFormat)
   const clearWs = useRealtime((s) => s.clearWs)
+  const bindWs = useRealtime((s) => s.bindWs)
   const frameEndRef = useRef<HTMLDivElement>(null)
   const [input, setInput] = useState('')
   const [url, setUrl] = useState(ws.url)
   const [showLog, setShowLog] = useState(false)
+
+  useEffect(() => {
+    bindWs()
+  }, [bindWs])
 
   useEffect(() => { frameEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [ws.frames.length, ws.logs.length, showLog])
 

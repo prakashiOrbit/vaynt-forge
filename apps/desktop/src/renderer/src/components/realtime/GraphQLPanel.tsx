@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Play, RotateCcw, Braces, Sparkles } from 'lucide-react'
+import { Play, RotateCcw, Braces, Sparkles, Loader2 } from 'lucide-react'
 import { Button, JsonTreeView, KeyValueEditor, Tabs } from '@vayntforge/ui'
 import type { TabItem } from '@vayntforge/ui'
 import { formatGraphQL, graphqlIntrospection } from '@vayntforge/engine'
-import type { GraphQLObjectType, GraphQLTypeRef } from '@vayntforge/engine'
+import type { Environment, GraphQLObjectType, GraphQLTypeRef, Variable } from '@vayntforge/engine'
 import { useRealtime } from '../../stores/realtime'
 
 function TypeRefLabel({ type }: { type: GraphQLTypeRef }) {
@@ -60,7 +60,17 @@ function SchemaExplorer() {
   )
 }
 
-export function GraphQLPanel({ tabId }: { tabId: string }) {
+export function GraphQLPanel({
+  tabId,
+  workspaceId,
+  globalVariables,
+  environment,
+}: {
+  tabId: string
+  workspaceId: string
+  globalVariables: Variable[]
+  environment?: Environment
+}) {
   const gql = useRealtime((s) => s.getGql(tabId))
   const executeGql = useRealtime((s) => s.executeGql)
   const clearGql = useRealtime((s) => s.clearGql)
@@ -75,7 +85,9 @@ export function GraphQLPanel({ tabId }: { tabId: string }) {
     { id: 'headers', label: 'Headers' },
   ]
 
-  const handleExecute = () => executeGql(tabId, query, variables)
+  const handleExecute = () => {
+    void executeGql(tabId, query, variables, { workspaceId, globalVariables, environment })
+  }
   const handleFormat = () => setQuery((q) => formatGraphQL(q))
 
   return (
@@ -93,8 +105,9 @@ export function GraphQLPanel({ tabId }: { tabId: string }) {
           <Button size="sm" variant="ghost" onClick={() => { clearGql(tabId); setQuery(''); setVariables('') }}>
             <RotateCcw className="h-3 w-3" /> Clear
           </Button>
-          <Button size="sm" onClick={handleExecute}>
-            <Play className="h-3 w-3" /> Execute
+          <Button size="sm" onClick={handleExecute} disabled={gql.sending || !gql.endpoint}>
+            {gql.sending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+            {gql.sending ? 'Running…' : 'Execute'}
           </Button>
         </div>
       </div>

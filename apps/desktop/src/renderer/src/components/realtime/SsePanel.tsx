@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Radio, Pause, Play, RotateCcw, Trash2, X } from 'lucide-react'
 import { Button, EmptyState } from '@vayntforge/ui'
 import { useRealtime } from '../../stores/realtime'
@@ -13,7 +13,13 @@ export function SsePanel({ tabId }: { tabId: string }) {
   const closeSse = useRealtime((s) => s.closeSse)
   const reconnectSse = useRealtime((s) => s.reconnectSse)
   const clearSse = useRealtime((s) => s.clearSse)
+  const bindSse = useRealtime((s) => s.bindSse)
   const eventEndRef = useRef<HTMLDivElement>(null)
+  const [url, setUrl] = useState(sse.url)
+
+  useEffect(() => {
+    bindSse()
+  }, [bindSse])
 
   useEffect(() => { eventEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [sse.events.length])
 
@@ -22,11 +28,16 @@ export function SsePanel({ tabId }: { tabId: string }) {
       <EmptyState
         icon={Radio}
         title="Server-Sent Events monitor"
-        description="Connect to an SSE endpoint to watch a live event stream."
+        description="Enter an SSE endpoint and connect to watch its live event stream."
         action={
-          <Button onClick={() => connectSse(tabId, 'https://demo.vayntforge.dev/events')}>
-            Connect to demo
-          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-72 rounded border border-border bg-bg px-2 py-1 font-mono text-[12px] text-text"
+            />
+            <Button onClick={() => connectSse(tabId, url || sse.url)}>Connect</Button>
+          </div>
         }
       />
     )
@@ -42,7 +53,7 @@ export function SsePanel({ tabId }: { tabId: string }) {
         >
           {sse.status}
         </span>
-        <span className="text-[11px] text-faint font-mono">demo.vayntforge.dev/events</span>
+        <span className="text-[11px] text-faint font-mono">{sse.url}</span>
         <div className="ml-auto flex items-center gap-1">
           {sse.status === 'open' && (
             sse.paused ? (

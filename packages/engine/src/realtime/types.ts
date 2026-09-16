@@ -55,6 +55,12 @@ export interface MockWsSession extends MockTagged {
   close(): void
 }
 
+/** Pushed main→renderer over `IPC.WS_EVENT` by the real `ws`-backed connection in the main process, routed by channelId (the tab id). */
+export type WsPushEvent =
+  | { kind: 'status'; status: WsStatus }
+  | { kind: 'frame'; frame: WsFrame }
+  | { kind: 'log'; line: string }
+
 /* -------------------------------------------------------------------------- *
  * Server-Sent Events
  * -------------------------------------------------------------------------- */
@@ -83,6 +89,12 @@ export interface MockSseSession extends MockTagged {
   close(): void
   reconnect(): void
 }
+
+/** Pushed main→renderer over `IPC.SSE_EVENT` by the real fetch-stream connection in the main process, routed by channelId (the tab id). */
+export type SsePushEvent =
+  | { kind: 'status'; status: SseStatus }
+  | { kind: 'event'; event: SseEvent }
+  | { kind: 'log'; line: string }
 
 /* -------------------------------------------------------------------------- *
  * GraphQL

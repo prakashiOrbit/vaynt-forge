@@ -172,7 +172,14 @@ export function RequestBuilderPage() {
         <div className="min-h-0 flex-1">
           {tab.kind === 'ws' && <WebSocketPanel tabId={tab.id} />}
           {tab.kind === 'sse' && <SsePanel tabId={tab.id} />}
-          {tab.kind === 'graphql' && <GraphQLPanel tabId={tab.id} />}
+          {tab.kind === 'graphql' && (
+            <GraphQLPanel
+              tabId={tab.id}
+              workspaceId={activeWorkspaceId}
+              globalVariables={globalVariables}
+              environment={activeEnv}
+            />
+          )}
           {tab.kind === 'grpc' && <GrpcPanel tabId={tab.id} />}
           {tab.kind === 'debugger' && <DebuggerPanel tabId={tab.id} />}
           {tab.kind === 'compare' && <ComparePanel tabId={tab.id} />}
