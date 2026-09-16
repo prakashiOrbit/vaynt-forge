@@ -56,6 +56,7 @@ export function runScript(code: string, context: ScriptContext): ScriptResult {
   const logs: string[] = []
   const environmentPatch: Record<string, string> = {}
   const environmentSnapshot = { ...context.environment }
+  let visualizer: { template: string; data: unknown } | undefined
 
   const pm = {
     request: { method: context.request.method, url: context.request.url, headers: { ...context.request.headers } },
@@ -75,6 +76,27 @@ export function runScript(code: string, context: ScriptContext): ScriptResult {
         environmentPatch[key] = String(value)
       },
     },
+    visualizer: {
+      /**
+       * Last call wins — matches Postman's `pm.visualizer.set(template, data)`.
+       * `data` is a vm-realm object (a different `Object.prototype` than the
+       * host realm's), so it's round-tripped through JSON here: this is the
+       * same normalization Electron's IPC structured-clone would apply
+       * anyway once this crosses to the renderer, and it fails safely (falls
+       * back to `undefined`) if a script ever hands in something non-JSON
+       * (a function, a circular reference) instead of surfacing a cross-realm
+       * artifact as a confusing bug later.
+       */
+      set: (template: string, data?: unknown) => {
+        let normalized: unknown
+        try {
+          normalized = data === undefined ? undefined : JSON.parse(JSON.stringify(data))
+        } catch {
+          normalized = undefined
+        }
+        visualizer = { template: String(template), data: normalized }
+      },
+    },
   }
 
   const sandboxConsole = {
@@ -90,14 +112,14 @@ export function runScript(code: string, context: ScriptContext): ScriptResult {
   try {
     const script = new vm.Script(code, { filename: 'user-script.js' })
     script.runInContext(sandbox, { timeout: TIMEOUT_MS })
-    return { logs, environmentPatch }
+    return { logs, environmentPatch, visualizer }
   } catch (err) {
     // Errors vm.Script throws for timeout/memory limits come from the
     // sandboxed context's own realm, so `err instanceof Error` (checking
     // against the *host* realm's Error) is unreliable — duck-type instead.
     const message = hasMessage(err) ? err.message : String(err)
     const timedOut = /Script execution timed out/i.test(message)
-    return { logs, environmentPatch, error: message, timedOut }
+    return { logs, environmentPatch, visualizer, error: message, timedOut }
   }
 }
 

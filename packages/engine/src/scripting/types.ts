@@ -27,6 +27,8 @@ export interface ScriptResult {
   logs: string[]
   /** `pm.environment.set(key, value)` calls — applied by the caller, not persisted here. */
   environmentPatch: Record<string, string>
+  /** Set by `pm.visualizer.set(template, data)` — last call wins; rendered by the Response panel's Visualize tab. */
+  visualizer?: { template: string; data: unknown }
   error?: string
   timedOut?: boolean
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Radio } from 'lucide-react'
 import { EmptyState, LoadingState, StatusCode, Tabs, type TabItem } from '@vayntforge/ui'
 import type { RequestModel } from '@vayntforge/engine'
@@ -9,8 +9,9 @@ import { ResponseCookies } from './response/ResponseCookies'
 import { ResponseTimeline } from './response/ResponseTimeline'
 import { ResponseTestResults } from './response/ResponseTestResults'
 import { ResponseError } from './response/ResponseError'
+import { ResponseVisualizer } from './response/ResponseVisualizer'
 
-type ResponseTab = 'body' | 'headers' | 'cookies' | 'timeline' | 'tests'
+type ResponseTab = 'body' | 'headers' | 'cookies' | 'timeline' | 'tests' | 'visualize'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -29,6 +30,13 @@ export function ResponsePanel({
   onOpenDebugger(): void
 }) {
   const [subTab, setSubTab] = useState<ResponseTab>('body')
+
+  // Matches Postman: a fresh response with a visualizer opens straight to it;
+  // otherwise fall back to Body rather than leaving a stale tab selected
+  // from a previous response.
+  useEffect(() => {
+    if (entry?.response) setSubTab(entry.postScript?.visualizer ? 'visualize' : 'body')
+  }, [entry?.response])
 
   if (entry?.sending) return <LoadingState rows={5} />
 
@@ -57,12 +65,15 @@ export function ResponsePanel({
     )
   }
 
+  const visualizer = entry.postScript?.visualizer
+
   const tabs: TabItem<ResponseTab>[] = [
     { id: 'body', label: 'Body' },
     { id: 'headers', label: 'Headers', badge: Object.keys(response.headers).length },
     { id: 'cookies', label: 'Cookies', badge: response.cookies.length },
     { id: 'timeline', label: 'Timeline' },
     { id: 'tests', label: 'Test Results', badge: draft.assertions.filter((a) => a.enabled).length },
+    ...(visualizer ? [{ id: 'visualize' as const, label: 'Visualize' }] : []),
   ]
 
   return (
@@ -96,6 +107,7 @@ export function ResponsePanel({
             postScript={entry.postScript}
           />
         )}
+        {subTab === 'visualize' && visualizer && <ResponseVisualizer visualizer={visualizer} />}
       </div>
     </div>
   )

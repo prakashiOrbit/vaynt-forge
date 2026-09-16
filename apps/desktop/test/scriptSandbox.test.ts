@@ -28,6 +28,15 @@ test('pm.environment.get reads the existing snapshot', () => {
   assert.deepEqual(result.logs, ['https://api.acme.dev'])
 })
 
+test('pm.visualizer.set captures the template and data; last call wins', () => {
+  const result = runScript(
+    "pm.visualizer.set('<h1>{{name}}</h1>', { name: 'first' }); pm.visualizer.set('<h2>{{name}}</h2>', { name: 'second' })",
+    baseContext()
+  )
+  assert.equal(result.error, undefined)
+  assert.deepEqual(result.visualizer, { template: '<h2>{{name}}</h2>', data: { name: 'second' } })
+})
+
 test('pm.response.json() parses the response body for post-response scripts', () => {
   const ctx = baseContext({
     response: {

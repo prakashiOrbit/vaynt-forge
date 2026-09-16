@@ -23,6 +23,14 @@ const isDev = Boolean(process.env['ELECTRON_RENDERER_URL'])
  * rather than `'self'`. Dev mode is intentionally looser: electron-vite's
  * HMR needs `'unsafe-eval'`/`'unsafe-inline'` and a `ws:` connection to its
  * own dev server origin, neither of which ships in the packaged app.
+ *
+ * `frame-src 'self'`: the Response panel's Visualizer renders a script's
+ * `pm.visualizer.set(...)` template in a `srcdoc` iframe — CSP treats that
+ * as a same-origin frame load, so it needs `'self'` here (not `'none'`) or
+ * the frame simply never loads in a packaged build. That iframe still gets
+ * `sandbox=""` with no `allow-scripts`, so this only permits the frame to
+ * render at all; it doesn't grant it script execution — `script-src` is
+ * untouched.
  */
 const CSP = isDev
   ? [
@@ -34,6 +42,7 @@ const CSP = isDev
       "font-src 'self' data: " + process.env['ELECTRON_RENDERER_URL'],
       "object-src 'none'",
       "base-uri 'none'",
+      "frame-src 'self' " + process.env['ELECTRON_RENDERER_URL'],
     ].join('; ')
   : [
       "default-src 'self'",
@@ -45,7 +54,7 @@ const CSP = isDev
       "object-src 'none'",
       "base-uri 'none'",
       "form-action 'none'",
-      "frame-src 'none'",
+      "frame-src 'self'",
     ].join('; ')
 
 function createWindow(): void {
