@@ -59,8 +59,8 @@ Options:
                             chain rule on this collection is enabled).
   --bail                    Stop the run after the first failed request.
   --env-var KEY=VALUE       Override a secret variable's value (repeatable).
-                            Required for any global/environment variable
-                            flagged "secret" — see below.
+                            Required for any global/environment/collection
+                            variable flagged "secret" — see below.
   --secrets <path>          A flat { "KEY": "value" } JSON file of the same
                             overrides, for more than a couple of secrets.
   --reporter <cli|json>     Output format (default cli).
@@ -72,12 +72,22 @@ Options:
 
 Exit code is 0 only when every assertion in the run passed (0 failures).
 
-A note on secrets: only global and environment variables are ever encrypted
-at rest by the desktop app (via the OS keychain), and only on platforms
-where that's available — this CLI has no way to tell a real ciphertext blob
-apart from plaintext written on a platform without one, so it never trusts
-a "secret"-flagged global/environment variable's stored value directly.
-Supply it via --env-var/--secrets, exactly like any other CI secret.
+A note on secrets: global, environment, and collection variables flagged
+"secret" are encrypted at rest by the desktop app (via the OS keychain, and
+only on platforms where that's available) — this CLI has no way to tell a
+real ciphertext blob apart from plaintext written on a platform without
+one, so it never trusts a "secret"-flagged variable's stored value
+directly. Supply it via --env-var/--secrets, exactly like any other CI
+secret.
+
+The same encryption also applies to auth fields (a Bearer token, a Basic
+password, an API key's value, etc.) and to any secret-flagged header/param/
+body field — but those have no override mechanism here, since they aren't
+keyed by a variable name. If a request hardcodes a real secret directly
+into one of those instead of referencing it via {{aVariable}}, that field
+will round-trip as ciphertext through this CLI. Referencing a variable
+there (the way the app's own auth/variable system is meant to be used) is
+both the more secure pattern and the one this CLI can actually resolve.
 `
 
 async function main(): Promise<void> {
@@ -110,7 +120,6 @@ async function main(): Promise<void> {
   const requests = storage.listRequests(workspace.id).filter((r) => r.collectionId === collection.id)
   if (requests.length === 0) throw new Error(`Collection "${collection.name}" has no requests.`)
 
-  const collections = storage.listCollections(workspace.id)
   const foldersByCollection = { [collection.id]: storage.listFolders(collection.id) }
 
   const overrides = {
@@ -119,6 +128,14 @@ async function main(): Promise<void> {
   }
   const warnings: string[] = []
   const globalVariables = applySecretOverrides(storage.listGlobalVariables(workspace.id), overrides, (m) => warnings.push(m))
+  // Collection variables get the exact same "secret" toggle and codec
+  // treatment as global/environment ones (see the roadmap's Post-v1.0 log) —
+  // override every collection in the workspace, not just the target one,
+  // since a request's ancestor chain can reach any of them.
+  const collections = storage.listCollections(workspace.id).map((c) => ({
+    ...c,
+    variables: c.variables ? applySecretOverrides(c.variables, overrides, (m) => warnings.push(`collection "${c.name}": ${m}`)) : c.variables,
+  }))
 
   let environment: Environment | undefined
   const environmentFile = str('environment-file')

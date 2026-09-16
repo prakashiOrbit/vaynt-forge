@@ -240,3 +240,153 @@ test('secret values decrypt correctly through the same codec after reopen', () =
   assert.equal(envs[0]?.variables[0]?.currentValue, 'token-xyz')
   reopened.close()
 })
+
+test('collection variables, folder/collection/request auth, and secret-flagged request fields are also encrypted at rest', () => {
+  const path = tempDb()
+  const store = new SQLiteStorage({ path })
+  const wrapped = withSecretCodec(store, sealedCodec())
+  const ws = store.createWorkspace({ name: 'Auth Secrets' })
+
+  const collection = wrapped.createCollection({
+    name: 'Secured',
+    workspaceId: ws.id,
+    auth: { type: 'bearer', token: 'collection-token-123' },
+    variables: [{ id: 'cv1', key: 'apiSecret', initialValue: 'collection-var-secret', currentValue: 'collection-var-secret', scope: 'collection', secret: true }],
+  })
+  const folder = wrapped.createFolder({
+    collectionId: collection.id,
+    name: 'Nested',
+    requestIds: [],
+    auth: { type: 'basic', username: 'folder-user', password: 'folder-password-456' },
+  })
+  wrapped.saveRequest({
+    ...sampleRequest('req_auth_sec', ws.id, collection.id),
+    folderId: folder.id,
+    auth: { type: 'apiKey', location: 'header', key: 'X-Api-Key', value: 'request-apikey-789' },
+    headers: [{ id: 'h1', key: 'X-Secret-Header', value: 'header-secret-abc', enabled: true, secret: true }],
+    variables: [{ id: 'rv1', key: 'reqVar', value: 'request-var-secret', enabled: true, secret: true }],
+    body: { type: 'x-www-form-urlencoded', pairs: [{ id: 'b1', key: 'password', value: 'body-pair-secret', enabled: true, secret: true }] },
+  })
+  store.close()
+
+  const raw = new DatabaseSync(path)
+  const collRow = raw.prepare('SELECT data FROM collections WHERE id = ?').get(collection.id) as { data: string }
+  const folderRow = raw.prepare('SELECT data FROM folders WHERE id = ?').get(folder.id) as { data: string }
+  const reqRow = raw.prepare('SELECT data FROM requests WHERE id = ?').get('req_auth_sec') as { data: string }
+  raw.close()
+
+  for (const plaintext of [
+    'collection-token-123',
+    'collection-var-secret',
+    'folder-password-456',
+    'request-apikey-789',
+    'header-secret-abc',
+    'request-var-secret',
+    'body-pair-secret',
+  ]) {
+    assert.equal(collRow.data.includes(plaintext), false, `${plaintext} must not be in the raw collections row`)
+    assert.equal(folderRow.data.includes(plaintext), false, `${plaintext} must not be in the raw folders row`)
+    assert.equal(reqRow.data.includes(plaintext), false, `${plaintext} must not be in the raw requests row`)
+  }
+  // folder-user (username, not sensitive) SHOULD survive in plaintext — only the password is encrypted.
+  assert.equal(folderRow.data.includes('folder-user'), true, 'non-sensitive auth fields should stay plaintext')
+
+  const reopened = new SQLiteStorage({ path })
+  const rewrapped = withSecretCodec(reopened, sealedCodec())
+  const gotCollection = rewrapped.getCollection(collection.id)
+  const gotFolder = rewrapped.listFolders(collection.id)[0]
+  const gotRequest = rewrapped.getRequest('req_auth_sec')
+
+  assert.deepEqual(gotCollection?.auth, { type: 'bearer', token: 'collection-token-123' })
+  assert.equal(gotCollection?.variables?.[0]?.currentValue, 'collection-var-secret')
+  assert.deepEqual(gotFolder?.auth, { type: 'basic', username: 'folder-user', password: 'folder-password-456' })
+  assert.deepEqual(gotRequest?.auth, { type: 'apiKey', location: 'header', key: 'X-Api-Key', value: 'request-apikey-789' })
+  assert.equal(gotRequest?.headers[0]?.value, 'header-secret-abc')
+  assert.equal(gotRequest?.variables[0]?.value, 'request-var-secret')
+  assert.equal((gotRequest?.body as { pairs: { value: string }[] }).pairs[0]?.value, 'body-pair-secret')
+  reopened.close()
+})
+
+test('a pre-existing plaintext auth/collection-variable value (written before this codec wiring existed) still reads back correctly', () => {
+  const path = tempDb()
+  const store = new SQLiteStorage({ path })
+  const ws = store.createWorkspace({ name: 'Legacy' })
+  // Written through the RAW (un-wrapped) store — simulates data saved by an
+  // older build that never encrypted these fields.
+  const collection = store.createCollection({
+    name: 'Legacy Collection',
+    workspaceId: ws.id,
+    auth: { type: 'bearer', token: 'already-plaintext-token' },
+    variables: [{ id: 'v1', key: 'k', initialValue: 'already-plaintext-var', currentValue: 'already-plaintext-var', scope: 'collection', secret: true }],
+  })
+  store.close()
+
+  const reopened = new SQLiteStorage({ path })
+  const wrapped = withSecretCodec(reopened, sealedCodec())
+  const got = wrapped.getCollection(collection.id)
+  assert.deepEqual(got?.auth, { type: 'bearer', token: 'already-plaintext-token' }, 'decrypt of non-ciphertext falls back to the original value unchanged')
+  assert.equal(got?.variables?.[0]?.currentValue, 'already-plaintext-var')
+  reopened.close()
+})
+
+test('a {{variable}} reference in an auth/header field is never encrypted — only a literal secret is', () => {
+  const path = tempDb()
+  const store = new SQLiteStorage({ path })
+  const wrapped = withSecretCodec(store, sealedCodec())
+  const ws = store.createWorkspace({ name: 'Template Refs' })
+
+  wrapped.saveRequest({
+    ...sampleRequest('req_template', ws.id),
+    auth: { type: 'bearer', token: '{{authToken}}' },
+    headers: [{ id: 'h1', key: 'X-Api-Key', value: '{{apiKey}}', enabled: true, secret: true }],
+  })
+  wrapped.saveRequest({
+    ...sampleRequest('req_literal', ws.id),
+    auth: { type: 'bearer', token: 'a-real-hardcoded-token' },
+  })
+  store.close()
+
+  const raw = new DatabaseSync(path)
+  const templateRow = raw.prepare('SELECT data FROM requests WHERE id = ?').get('req_template') as { data: string }
+  const literalRow = raw.prepare('SELECT data FROM requests WHERE id = ?').get('req_literal') as { data: string }
+  raw.close()
+
+  assert.equal(templateRow.data.includes('{{authToken}}'), true, 'a template reference must stay literally readable, not become ciphertext')
+  assert.equal(templateRow.data.includes('{{apiKey}}'), true, 'same for a secret-flagged header that references a variable')
+  assert.equal(literalRow.data.includes('a-real-hardcoded-token'), false, 'a real hardcoded secret must still be encrypted')
+
+  const reopened = new SQLiteStorage({ path })
+  const rewrapped = withSecretCodec(reopened, sealedCodec())
+  assert.deepEqual(rewrapped.getRequest('req_template')?.auth, { type: 'bearer', token: '{{authToken}}' })
+  assert.deepEqual(rewrapped.getRequest('req_literal')?.auth, { type: 'bearer', token: 'a-real-hardcoded-token' })
+  reopened.close()
+})
+
+test('non-sensitive fields are never touched by the codec', () => {
+  const path = tempDb()
+  const store = new SQLiteStorage({ path })
+  const wrapped = withSecretCodec(store, sealedCodec())
+  const ws = store.createWorkspace({ name: 'Non-secret' })
+  const collection = wrapped.createCollection({
+    name: 'C',
+    workspaceId: ws.id,
+    variables: [{ id: 'v1', key: 'region', initialValue: 'eu-west-1', currentValue: 'eu-west-1', scope: 'collection', secret: false }],
+  })
+  wrapped.saveRequest({
+    ...sampleRequest('req_plain', ws.id, collection.id),
+    auth: { type: 'aws', accessKey: 'AKIA_NOT_SECRET', secretKey: 'this-is-secret', region: 'us-east-1', service: 's3' },
+  })
+  store.close()
+
+  const raw = new DatabaseSync(path)
+  const reqRow = raw.prepare('SELECT data FROM requests WHERE id = ?').get('req_plain') as { data: string }
+  raw.close()
+  assert.equal(reqRow.data.includes('AKIA_NOT_SECRET'), true, 'accessKey is not sensitive and should stay plaintext')
+  assert.equal(reqRow.data.includes('us-east-1'), true, 'region is not sensitive and should stay plaintext')
+  assert.equal(reqRow.data.includes('this-is-secret'), false, 'secretKey is sensitive and must be encrypted')
+
+  const reopened = new SQLiteStorage({ path })
+  const gotCollection = withSecretCodec(reopened, sealedCodec()).getCollection(collection.id)
+  assert.equal(gotCollection?.variables?.[0]?.currentValue, 'eu-west-1')
+  reopened.close()
+})

@@ -8,8 +8,21 @@ import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import type { AddressInfo } from 'node:net'
 import { SQLiteStorage } from '@vayntforge/sqlite'
-import { createDraftRequest } from '@vayntforge/engine'
-import type { Collection, Folder } from '@vayntforge/engine'
+import { createDraftRequest, withSecretCodec } from '@vayntforge/engine'
+import type { Collection, Folder, SecretCodec } from '@vayntforge/engine'
+
+/** A real, reversible codec (not the desktop app's actual `safeStorage`, but exercises the exact same `withSecretCodec` code path a real app-created database went through). */
+function fakeCodec(): SecretCodec {
+  return {
+    isAvailable: () => true,
+    encrypt: (plain) => `cipher:${Buffer.from(plain, 'utf8').toString('base64')}`,
+    decrypt: (payload) => {
+      const match = /^cipher:(.+)$/.exec(payload)
+      if (!match) throw new Error('not ciphertext')
+      return Buffer.from(match[1]!, 'base64').toString('utf8')
+    },
+  }
+}
 
 const cliPath = join(dirname(fileURLToPath(import.meta.url)), '../dist/cli.js')
 
@@ -181,6 +194,50 @@ test('a secret variable with no override is sent empty, with a warning, rather t
     const result = await runCli(['run', '--db', dbPath, '--workspace', workspace.id, '--collection', collection.id])
     assert.equal(apiKeySeen, '', 'unresolved secret should be sent empty, never the raw (possibly ciphertext) db value')
     assert.match(result.stderr, /secret variable "secretKey" has no --env-var\/--secrets override/)
+  } finally {
+    await server.close()
+  }
+})
+
+test('a real encrypted collection variable (from a genuinely codec-wrapped db) is never sent as raw ciphertext, and --env-var resolves it correctly', async () => {
+  let apiKeySeen: string | undefined
+  const server = await startServer((req, res) => {
+    apiKeySeen = req.headers['x-api-key'] as string | undefined
+    res.writeHead(200, {})
+    res.end()
+  })
+  try {
+    const dbPath = tempDb()
+    const store = new SQLiteStorage({ path: dbPath })
+    // Written through withSecretCodec, the same wrapper the real desktop
+    // app's StorageService uses — the collection variable below is
+    // genuinely encrypted at rest, not just conceptually "secret".
+    const wrapped = withSecretCodec(store, fakeCodec())
+    const workspace = store.createWorkspace({ name: 'W' })
+    const collection = wrapped.createCollection({
+      workspaceId: workspace.id,
+      name: 'C',
+      variables: [{ id: 'cv1', key: 'apiSecret', initialValue: 'real-secret', currentValue: 'real-secret', scope: 'collection', secret: true }],
+    })
+    store.saveRequest({
+      ...createDraftRequest({ id: 'r1', workspaceId: workspace.id, url: server.url, collectionId: collection.id }),
+      headers: [{ id: 'h1', key: 'X-Api-Key', value: '{{apiSecret}}', enabled: true }],
+    })
+    store.close()
+
+    // Confirm it's genuinely ciphertext on disk, not just a claim.
+    const rawCheck = new SQLiteStorage({ path: dbPath })
+    const rawCollection = rawCheck.getCollection(collection.id)
+    rawCheck.close()
+    assert.notEqual(rawCollection?.variables?.[0]?.currentValue, 'real-secret', 'the CLI test setup must exercise real ciphertext, not plaintext')
+
+    const withoutOverride = await runCli(['run', '--db', dbPath, '--workspace', workspace.id, '--collection', collection.id])
+    assert.equal(apiKeySeen, '', 'without an override, the CLI must never forward the raw ciphertext value')
+    assert.match(withoutOverride.stderr, /secret variable "apiSecret" has no --env-var\/--secrets override/)
+
+    const withOverride = await runCli(['run', '--db', dbPath, '--workspace', workspace.id, '--collection', collection.id, '--env-var', 'apiSecret=the-real-secret'])
+    assert.equal(apiKeySeen, 'the-real-secret')
+    assert.equal(withOverride.status, 0)
   } finally {
     await server.close()
   }
