@@ -6,6 +6,7 @@ import type { ChainRule, RequestModel, RunStatus, TestRunRequestResult } from '@
 import { useSession } from '../../stores/session'
 import { useActiveWorkspaceData, useData } from '../../stores/data'
 import { sendRequest, type KV } from '../../lib/sendRequest'
+import { applyEnvironmentPatch } from '../../lib/environmentWriteback'
 
 type RunnerTab = 'config' | 'chain'
 
@@ -105,6 +106,14 @@ export function CollectionRunner({
     const startedAt = Date.now()
     const allResults: TestRunRequestResult[] = []
     const extractedVars: KV[] = []
+    // Reassigned after any request whose pre/post-request script calls
+    // pm.environment.set() — so a later request in the *same* run (e.g. one
+    // that re-authenticates and hands a fresh token to everything after it)
+    // sees the new value immediately, not just on the next run. JS's
+    // single-threaded execution makes this safe to mutate even with
+    // concurrency > 1: each `await` is a clean handoff point, never a real
+    // data race, just last-write-wins if two requests set the same key.
+    let currentEnvironment = environment
 
     for (let iter = 0; iter < Math.max(1, iterations); iter++) {
       const row = dataRows?.[iter % dataRows.length]
@@ -113,14 +122,23 @@ export function CollectionRunner({
       let cursor = 0
       const runOne = async (req: RequestModel) => {
         if (delayMs > 0) await sleep(delayMs)
-        const { response } = await sendRequest(
+        const { response, preScript, postScript } = await sendRequest(
           req,
           globalVariables,
-          environment,
+          currentEnvironment,
           [...extractedVars, ...rowVars],
           collections,
           foldersByCollection
         )
+
+        const updatedEnvironment = applyEnvironmentPatch(currentEnvironment, {
+          ...preScript?.environmentPatch,
+          ...postScript?.environmentPatch,
+        })
+        if (updatedEnvironment) {
+          currentEnvironment = updatedEnvironment
+          void useData.getState().saveEnvironment(updatedEnvironment)
+        }
 
         const rule = ruleFor(req.id)
         if (rule?.enabled && rule.jsonPath && rule.variableName) {
