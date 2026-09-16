@@ -6,18 +6,50 @@ import {
   deserializeCollectionFile,
   generateId,
   parseCurlCommand,
+  parseInsomniaExport,
   parsePostmanCollection,
   requestsFromCollectionFile,
+  type CollectionPlan,
 } from '@vayntforge/engine'
 import { useData } from '../../stores/data'
 
-type ImportFormat = 'native' | 'postman' | 'curl'
+type ImportFormat = 'native' | 'postman' | 'insomnia' | 'curl'
 
 const TABS = [
   { id: 'native' as const, label: 'Vaynt Forge (.json)' },
   { id: 'postman' as const, label: 'Postman Collection' },
+  { id: 'insomnia' as const, label: 'Insomnia Export' },
   { id: 'curl' as const, label: 'cURL command' },
 ]
+
+/** Shared materialization for any importer producing a `CollectionPlan` (Postman, Insomnia, OpenAPI) — one flat folder per tag, matching how nested source hierarchies already flatten for OpenAPI/Postman import. */
+async function importPlan(plan: CollectionPlan, workspaceId: string): Promise<{ name: string; count: number }> {
+  const created = await useData.getState().createCollection({ workspaceId, name: plan.name, description: plan.description })
+  let count = 0
+  for (const group of plan.groups) {
+    const folder = await useData.getState().createFolder({ collectionId: created.id, name: group.tag, requestIds: [] })
+    for (const req of group.requests) {
+      const draft = createDraftRequest({
+        id: generateId('req'),
+        workspaceId,
+        collectionId: created.id,
+        method: req.method,
+        name: req.name,
+        url: req.url,
+      })
+      draft.folderId = folder.id
+      draft.params = req.params
+      draft.headers = req.headers
+      draft.auth = req.auth
+      draft.body = req.body
+      draft.assertions = req.assertions
+      draft.variables = req.variables
+      await useData.getState().saveRequest(draft)
+      count++
+    }
+  }
+  return { name: created.name, count }
+}
 
 export function ImportCollectionModal({
   open,
@@ -67,33 +99,14 @@ export function ImportCollectionModal({
         const reqs = requestsFromCollectionFile(parsed, workspaceId, created.id)
         for (const r of reqs) await useData.getState().saveRequest(r)
         toast.success('Collection imported', `${created.name} · ${reqs.length} requests`)
-      } else {
+      } else if (format === 'postman') {
         const plan = parsePostmanCollection(JSON.parse(text))
-        const created = await useData.getState().createCollection({ workspaceId, name: plan.name, description: plan.description })
-        let count = 0
-        for (const group of plan.groups) {
-          const folder = await useData.getState().createFolder({ collectionId: created.id, name: group.tag, requestIds: [] })
-          for (const req of group.requests) {
-            const draft = createDraftRequest({
-              id: generateId('req'),
-              workspaceId,
-              collectionId: created.id,
-              method: req.method,
-              name: req.name,
-              url: req.url,
-            })
-            draft.folderId = folder.id
-            draft.params = req.params
-            draft.headers = req.headers
-            draft.auth = req.auth
-            draft.body = req.body
-            draft.assertions = req.assertions
-            draft.variables = req.variables
-            await useData.getState().saveRequest(draft)
-            count++
-          }
-        }
-        toast.success('Collection imported', `${created.name} · ${count} requests`)
+        const { name, count } = await importPlan(plan, workspaceId)
+        toast.success('Collection imported', `${name} · ${count} requests`)
+      } else {
+        const plan = parseInsomniaExport(JSON.parse(text))
+        const { name, count } = await importPlan(plan, workspaceId)
+        toast.success('Collection imported', `${name} · ${count} requests`)
       }
       reset()
     } catch (err) {
@@ -110,6 +123,7 @@ export function ImportCollectionModal({
         <p className="text-[11px] text-faint">
           {format === 'native' && 'A collection previously exported from Vaynt Forge.'}
           {format === 'postman' && 'A Postman Collection v2.x export — nested folders become one group each.'}
+          {format === 'insomnia' && 'An Insomnia v4 export (Application → Export Data) — nested folders become one group each.'}
           {format === 'curl' && 'Paste a single curl command to import it as one request.'}
         </p>
         {format !== 'curl' && (

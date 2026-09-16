@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   parsePostmanCollection,
+  parseInsomniaExport,
   parseHar,
   parseCurlCommand,
   exportCollectionPostman,
@@ -66,6 +67,105 @@ test('parsePostmanCollection converts headers, urlencoded body, and bearer auth'
   assert.equal(req.body.type, 'x-www-form-urlencoded')
   assert.equal(req.auth.type, 'bearer')
   assert.equal((req.auth as { token: string }).token, 'tok_123')
+})
+
+/* ------------------------------- Insomnia import ------------------------------- */
+
+test('parseInsomniaExport rejects a document with no "resources" array', () => {
+  assert.throws(() => parseInsomniaExport({}), /valid Insomnia export/)
+})
+
+test('parseInsomniaExport walks parentId chains into "Parent / Child" tags', () => {
+  const plan = parseInsomniaExport({
+    _type: 'export',
+    resources: [
+      { _id: 'wrk_1', _type: 'workspace', name: 'My API' },
+      { _id: 'fld_users', _type: 'request_group', parentId: 'wrk_1', name: 'Users' },
+      { _id: 'fld_admin', _type: 'request_group', parentId: 'fld_users', name: 'Admin' },
+      { _id: 'req_1', _type: 'request', parentId: 'fld_users', name: 'Get User', method: 'GET', url: 'https://api.acme.dev/users/{{id}}' },
+      { _id: 'req_2', _type: 'request', parentId: 'fld_admin', name: 'Ban User', method: 'POST', url: 'https://api.acme.dev/users/{{id}}/ban' },
+      { _id: 'req_3', _type: 'request', parentId: 'wrk_1', name: 'Health', method: 'GET', url: 'https://api.acme.dev/health' },
+    ],
+  })
+  assert.equal(plan.name, 'My API')
+  const tags = plan.groups.map((g) => g.tag).sort()
+  // A request parented directly to the workspace (no folder) falls back to
+  // "General", same convention Postman import uses for bare top-level requests.
+  assert.deepEqual(tags, ['General', 'Users', 'Users / Admin'])
+  assert.equal(plan.groups.find((g) => g.tag === 'General')?.requests[0]?.name, 'Health')
+})
+
+test('parseInsomniaExport converts headers, urlencoded body, and bearer auth', () => {
+  const plan = parseInsomniaExport({
+    _type: 'export',
+    resources: [
+      { _id: 'wrk_1', _type: 'workspace', name: 'X' },
+      {
+        _id: 'req_1',
+        _type: 'request',
+        parentId: 'wrk_1',
+        name: 'Login',
+        method: 'POST',
+        url: 'https://api.acme.dev/login',
+        headers: [{ name: 'X-Debug', value: 'true' }],
+        body: { mimeType: 'application/x-www-form-urlencoded', params: [{ name: 'user', value: 'sarah' }] },
+        authentication: { type: 'bearer', token: 'tok_123' },
+      },
+    ],
+  })
+  const req = plan.groups[0]!.requests[0]!
+  assert.equal(req.headers[0]?.key, 'X-Debug')
+  assert.equal(req.body.type, 'x-www-form-urlencoded')
+  assert.equal(req.auth.type, 'bearer')
+  assert.equal((req.auth as { token: string }).token, 'tok_123')
+})
+
+test('parseInsomniaExport converts basic auth and JSON body, and drops disabled entries', () => {
+  const plan = parseInsomniaExport({
+    _type: 'export',
+    resources: [
+      { _id: 'wrk_1', _type: 'workspace', name: 'X' },
+      {
+        _id: 'req_1',
+        _type: 'request',
+        parentId: 'wrk_1',
+        name: 'Create',
+        method: 'POST',
+        url: 'https://api.acme.dev/things',
+        headers: [
+          { name: 'Content-Type', value: 'application/json' },
+          { name: 'X-Off', value: 'nope', disabled: true },
+        ],
+        body: { mimeType: 'application/json', text: '{"a":1}' },
+        authentication: { type: 'basic', username: 'admin', password: 'hunter2' },
+      },
+    ],
+  })
+  const req = plan.groups[0]!.requests[0]!
+  assert.equal(req.headers.length, 2)
+  assert.equal(req.headers.find((h) => h.key === 'X-Off')?.enabled, false)
+  assert.equal(req.body.type, 'raw')
+  assert.equal((req.body as { content: string }).content, '{"a":1}')
+  assert.deepEqual(req.auth, { type: 'basic', username: 'admin', password: 'hunter2' })
+})
+
+test('parseInsomniaExport drops an auth type it cannot represent, rather than faking it', () => {
+  const plan = parseInsomniaExport({
+    _type: 'export',
+    resources: [
+      { _id: 'wrk_1', _type: 'workspace', name: 'X' },
+      {
+        _id: 'req_1',
+        _type: 'request',
+        parentId: 'wrk_1',
+        name: 'Digest req',
+        method: 'GET',
+        url: 'https://api.acme.dev/secure',
+        authentication: { type: 'digest', username: 'u', password: 'p' },
+      },
+    ],
+  })
+  assert.deepEqual(plan.groups[0]!.requests[0]!.auth, { type: 'none' })
 })
 
 /* ---------------------------------- HAR import --------------------------------- */
